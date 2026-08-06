@@ -1,0 +1,192 @@
+/* Design-system tokens + self-hosted Plus Jakarta Sans, consumed from the handoff bundle. */
+@import '@ds/colors_and_type.css';
+
+/* -------------------------------------------------------------------------
+   App tokens
+
+   The PRD defines its own palette and geometry; the design system supplies
+   type, radii, shadows and the glass surface. Both are kept side by side so
+   it is obvious which value comes from where.
+   ------------------------------------------------------------------------- */
+:root {
+  --hc-accent: #0F5C6B;
+  --hc-page: var(--neutral-page);
+  --hc-card: #ffffff;
+  --hc-border: #E5E7EB;
+  --hc-border-soft: #F1F3F5;
+  --hc-ink: #111827;
+  --hc-ink-2: #374151;
+  --hc-muted: #6B7280;
+  --hc-muted-2: #9CA3AF;
+  --hc-muted-3: #C6CBD3;
+
+  --hc-done: #16A34A;
+  --hc-run: #2563EB;
+  --hc-due: #F59E0B;
+  --hc-late: #DC2626;
+  --hc-idle: #9CA3AF;
+
+  --hc-radius-card: 10px;
+  --hc-sidebar: 240px;
+  --hc-sidebar-collapsed: 64px;
+  --hc-topbar: 56px;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--hc-page);
+  color: var(--hc-ink);
+  font-family: var(--font-family-base);
+  font-weight: var(--fw-medium);
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+#root {
+  height: 100%;
+}
+
+a {
+  color: var(--hc-accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+button {
+  font-family: inherit;
+}
+
+input {
+  font-family: inherit;
+}
+
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-thumb {
+  background: #D5D9E0;
+  border-radius: 9px;
+  border: 2px solid #F7F8FA;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #B9C0CA;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@keyframes hcDrawerIn {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes hcFadeUp {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* -------------------------------------------------------------------------
+   Hover / focus states
+
+   The prototype expressed these with a `style-hover` attribute; in real CSS
+   they become classes. Everything else stays inline so the values can be read
+   straight against the design source.
+   ------------------------------------------------------------------------- */
+
+.hc-nav-item:hover:not(.is-active) {
+  background: #EEF2F4;
+  color: var(--hc-ink);
+}
+
+.hc-outline:hover {
+  border-color: var(--hc-accent);
+}
+
+.hc-outline-ink:hover {
+  border-color: var(--hc-accent);
+  color: var(--hc-ink);
+}
+
+.hc-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.hc-menu-item:hover {
+  background: #F3F6F7;
+}
+
+.hc-kpi {
+  transition: box-shadow 160ms, transform 160ms;
+}
+.hc-kpi:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.hc-matrix-cell:hover {
+  transform: scale(1.14);
+}
+
+.hc-tab:hover {
+  color: var(--hc-ink);
+}
+
+.hc-th-btn:hover {
+  color: var(--hc-ink);
+}
+
+.hc-row:hover {
+  background: #F7FAFA !important;
+}
+
+.hc-tahap-row:hover {
+  background: #FAFBFC;
+}
+
+.hc-chain-node:hover {
+  transform: translateY(-2px);
+}
+
+.hc-attach:hover {
+  border-color: var(--hc-accent);
+  background: #FAFCFC;
+}
+
+.hc-blocker-btn:hover {
+  background: #FEE2E2;
+}
+
+.hc-return-btn:hover {
+  background: #FEF2F2;
+  border-color: #FCA5A5;
+}
+
+.hc-input:focus {
+  border-color: var(--hc-accent);
+}

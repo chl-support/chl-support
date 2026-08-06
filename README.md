@@ -1,25 +1,79 @@
-# CODING AGENTS: READ THIS FIRST
+# Harmoni Command Center
 
-This is a **handoff bundle** from Claude Design (claude.ai/design).
+Aplikasi web internal PT Cipta Harmoni Lestari — satu sumber kebenaran untuk kewajiban,
+dokumen, tenggat, dan biaya awal proyek perumahan.
 
-A user mocked up designs in HTML/CSS/JS using an AI design tool, then exported this bundle so a coding agent can implement the designs for real.
+React + TypeScript + Vite. Implementasi dari mockup Claude Design di `project/`.
 
-## What you should do — IMPORTANT
+## Menjalankan
 
-**Read the chat transcripts first.** There are 1 chat transcript(s) in `chats/`. The transcripts show the full back-and-forth between the user and the design assistant — they tell you **what the user actually wants** and **where they landed** after iterating. Don't skip them. The final HTML files are the output, but the chat is where the intent lives.
+```bash
+npm install
+npm run dev        # http://localhost:5173
+npm run build      # produksi → dist/
+npm run typecheck
+```
 
-**Read `project/Harmoni Command Center.dc.html` in full.** The user had this file open when they triggered the handoff, so it's almost certainly the primary design they want built. Read it top to bottom — don't skim. Then **follow its imports**: open every file it pulls in (shared components, CSS, scripts) so you understand how the pieces fit together before you start implementing.
+## Layar (P0)
 
-**If anything is ambiguous, ask the user to confirm before you start implementing.** It's much cheaper to clarify scope up front than to build the wrong thing.
+| Layar | Isi |
+| --- | --- |
+| **Dashboard Eksekutif** | 6 KPI · matriks proyek × 6 modul · kalender kepatuhan 90 hari · tabel "Perlu perhatian Anda" |
+| **Detail Proyek** | Header proyek · 7 tab modul · sub-tab Jangka Pendek/Panjang · filter status · BlockerBanner |
+| **License & Documentation** | Rantai 11 izin (LSD → PSU) dengan izin terkunci · chip H-180/90/30/7 · tabel izin |
+| **Feasibility & Initial Cost** | KPI NPV/IRR/Payback/Margin/BEP/Peak Cash · kurva kas kumulatif · sensitivitas · 11 tahap initial cost |
+| **ItemDrawer** | Panel 480px: stepper verifikasi · form · lampiran · ketergantungan · jejak audit |
 
-## About the design files
+Modul P2 (Finance & Correspondence, Internal Audit, Pengaturan) menampilkan `ModulKosong` —
+strukturnya identik dengan modul lain, jadi tidak ada komponen baru yang perlu dirancang.
 
-The design medium is **HTML/CSS/JS** — these are prototypes, not production code. Your job is to **recreate them pixel-perfectly** in whatever technology makes sense for the target codebase (React, Vue, native, whatever fits). Match the visual output; don't copy the prototype's internal structure unless it happens to fit.
+## Interaksi yang berfungsi
 
-**Don't render these files in a browser or take screenshots unless the user asks you to.** Everything you need — dimensions, colors, layout rules — is spelled out in the source. Read the HTML and CSS directly; a screenshot won't tell you anything they don't.
+Pemilih proyek · seluruh item navigasi · 7 tab modul · Jangka Pendek/Panjang · chip filter status ·
+urut kolom · pencarian topbar · toggle kerapatan baris (Rapat/Longgar) · sel matriks → lompat ke
+modulnya · baris tabel → ItemDrawer · "Buat checklist perizinan" · ciutkan sidebar.
 
-## Bundle contents
+## Struktur
 
-- `README.md` — this file
-- `chats/` — conversation transcripts (read these!)
-- `project/` — the `UI mockups for permit system prototype` project files (HTML prototypes, assets, components)
+```
+src/
+  data/         Data dummy + konstanta (warna, status, modul, ikon, navigasi)
+  lib/          Format tanggal/rupiah, derivasi Row, kolom tabel, logika gerbang izin
+  components/   DataTable, ItemDrawer, DependencyChain, ProjectMatrix, ComplianceCalendar,
+                CashCurve, KpiCard, BlockerBanner, EmptyState, Sidebar, Topbar, PillButton
+  screens/      Empat layar P0 + ModulKosong
+  styles/       global.css — token aplikasi, reset, dan seluruh state hover/focus
+project/        Bundel handoff Claude Design (sumber desain + design system)
+chats/          Transkrip percakapan desain
+```
+
+## Token
+
+Warna dan geometri mengikuti PRD (`#0F5C6B`, `#F7F8FA`, radius 10, tabel 13px, sidebar 240px,
+topbar 56px). Tipografi, radius pill, shadow, dan permukaan glass berasal dari design system
+Dhany Indraswara.
+
+`vite.config.ts` memetakan alias `@ds` ke folder design system di dalam bundel handoff, sehingga
+`colors_and_type.css` (token + Plus Jakarta Sans yang di-host sendiri) hanya punya satu sumber.
+
+Design system tersebut juga memuat `_ds_bundle.js` dan `ui_kits/media_kit_website/styles.css`.
+Keduanya tidak dimuat di sini: `_ds_manifest.json` mencantumkan `"components": []`, dan isi bundel
+adalah komponen React khusus halaman media kit (Hero, Partners, WhyBrands, …) yang dipasang ke
+`window`. Tidak ada yang bisa dipakai aplikasi ini, jadi yang diambil hanya file tokennya.
+
+## Data
+
+Seluruh data masih dummy dan hidup di `src/data/`. Dua hal yang perlu diganti saat backend siap:
+
+- `TODAY` di `src/data/constants.ts` dipatok ke 6 Agu 2026 agar demo selalu konsisten — ganti
+  dengan `new Date()`.
+- `UNLOCK_GATE` di `src/data/permits.ts` menentukan berapa langkah rantai izin terbuka setelah izin
+  terakhir yang selesai.
+
+Status keterlambatan tidak pernah disimpan; selalu diturunkan dari `tgl` terhadap `TODAY`.
+
+## Desain sumber
+
+`project/Harmoni Command Center.dc.html` dan `project/Harmoni Table.dc.html` adalah prototipe
+aslinya, `project/uploads/PRD_1Page_Harmoni.md` adalah briefnya, dan `project/HANDOFF.md`
+adalah instruksi handoff dari Claude Design.
