@@ -120,8 +120,8 @@ export const NAV_GROUPS: NavGroup[] = [
 
 /** Signed-in user shown in the topbar. */
 export const CURRENT_USER = {
-  nama: 'Rani Puspita',
-  inisial: 'RP',
-  jabatan: 'Kadiv License & Doc',
+  nama: 'Willy Susanto',
+  inisial: 'WS',
+  jabatan: 'Head of Legal',
   notifikasi: 7,
 }
