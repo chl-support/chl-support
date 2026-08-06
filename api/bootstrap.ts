@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { ensureReady, getItems, getPermits, getProjects, hasDb } from './_lib/db'
-import { fail } from './_lib/http'
+import { ensureReady, getItems, getPermits, getProjects, hasDb } from './_lib/db.js'
+import { fail } from './_lib/http.js'
 
 /**
  * Single call the front-end makes on load: creates the schema + seeds demo data

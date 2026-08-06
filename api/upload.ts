@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { put } from '@vercel/blob'
-import { blobToken } from './_lib/env'
-import { db, ensureSchema, hasDb } from './_lib/db'
-import { fail, methodNotAllowed, readRawBody } from './_lib/http'
+import { blobToken } from './_lib/env.js'
+import { db, ensureSchema, hasDb } from './_lib/db.js'
+import { fail, methodNotAllowed, readRawBody } from './_lib/http.js'
 
 // Keep the raw body intact so we can stream the file to Blob.
 export const config = { api: { bodyParser: false } }

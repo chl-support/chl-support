@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { db, ensureSchema, getItems, hasDb } from './_lib/db'
-import { fail, methodNotAllowed } from './_lib/http'
+import { db, ensureSchema, getItems, hasDb } from './_lib/db.js'
+import { fail, methodNotAllowed } from './_lib/http.js'
 
 /**
  * GET  /api/items          → list all items
