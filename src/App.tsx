@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { BAGAN } from '@/data/constants'
 import { ITEMS } from '@/data/items'
 import type { Horizon, Item, ModuleId, NavId, Project, ProjectId, ScreenId } from '@/data/types'
-import { fetchBootstrap } from '@/lib/api'
+import { fetchBootstrap, fetchPermits, type PermitRecord } from '@/lib/api'
 import { AssistantDock } from '@/components/AssistantDock'
 import { ItemDrawer } from '@/components/ItemDrawer'
 import { NewItemDialog } from '@/components/NewItemDialog'
@@ -12,7 +12,6 @@ import { Topbar } from '@/components/Topbar'
 import type { MatrixStyle } from '@/components/ProjectMatrix'
 import { ROW_HEIGHT, type Density } from '@/lib/columns'
 import { fmtTgl } from '@/lib/format'
-import { buildPermitRows } from '@/lib/permits'
 import { buildRow, isTerlambat, sortRows, type Row, type SortDir } from '@/lib/rows'
 import { DashboardEksekutif } from '@/screens/DashboardEksekutif'
 import { DetailProyek } from '@/screens/DetailProyek'
@@ -77,9 +76,13 @@ export default function App() {
   const [projectMenu, setProjectMenu] = useState(false)
   const [drawer, setDrawer] = useState<Row | null>(null)
   const [density, setDensity] = useState<Density>('rapat')
-  const [checklist, setChecklist] = useState(false)
   const [newItem, setNewItem] = useState(false)
   const [newProject, setNewProject] = useState(false)
+
+  // Live permits for the active project (Perizinan screen).
+  const [permits, setPermits] = useState<PermitRecord[]>([])
+  const [permitsLoading, setPermitsLoading] = useState(false)
+  const [permitsNotice, setPermitsNotice] = useState<string | null>(null)
 
   // Items start from the bundled demo data and are replaced by live rows from
   // Neon once /api/bootstrap responds. If the backend is absent, the app keeps
@@ -129,10 +132,29 @@ export default function App() {
     return sortRows(r, sortKey, sortDir)
   }, [all, proyek, modul, horizon, filter, q, sortKey, sortDir])
 
-  const izinRows = useMemo(
-    () => sortRows(buildPermitRows(proyek, projects), sortKey, sortDir),
-    [proyek, projects, sortKey, sortDir],
-  )
+  const loadPermits = useCallback((p: ProjectId) => {
+    if (!p) {
+      setPermits([])
+      setPermitsNotice(null)
+      return
+    }
+    setPermitsLoading(true)
+    fetchPermits(p).then((data) => {
+      if (data) {
+        setPermits(data)
+        setPermitsNotice(null)
+      } else {
+        setPermits([])
+        setPermitsNotice('Database belum terhubung — hubungkan Neon di Vercel untuk mengelola perizinan.')
+      }
+      setPermitsLoading(false)
+    })
+  }, [])
+
+  // Reload permits whenever the active project changes.
+  useEffect(() => {
+    loadPermits(proyek)
+  }, [proyek, loadPermits])
 
   function goNav(id: NavId) {
     setNav(id)
@@ -284,17 +306,10 @@ export default function App() {
               (proyekAktif ? (
                 <LicenseDocumentation
                   proyekAktif={proyekAktif}
-                  rows={izinRows}
-                  rowH={rowH}
-                  densityLabel={densityLabel}
-                  sortKey={sortKey}
-                  sortDir={sortDir}
-                  checklistDibuat={checklist}
-                  onBuatChecklist={() => setChecklist(true)}
-                  onToggleDensity={toggleDensity}
-                  onSort={onSort}
-                  onOpen={setDrawer}
-                  onSelectChain={() => setScreen('lisensi')}
+                  permits={permits}
+                  loading={permitsLoading}
+                  notice={permitsNotice}
+                  onChanged={() => loadPermits(proyek)}
                 />
               ) : (
                 <NoProjectNotice onAddProject={() => setNewProject(true)} />

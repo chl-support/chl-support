@@ -118,6 +118,9 @@ export async function ensureSchema(): Promise<void> {
   await sql`ALTER TABLE audit_docs ADD COLUMN IF NOT EXISTS data TEXT`
   await sql`ALTER TABLE attachments ADD COLUMN IF NOT EXISTS data TEXT`
   await sql`ALTER TABLE attachments ADD COLUMN IF NOT EXISTS content_type TEXT DEFAULT ''`
+
+  // Permits are grouped by project phase (Pra-Akuisisi … Serah Terima).
+  await sql`ALTER TABLE permits ADD COLUMN IF NOT EXISTS fase TEXT DEFAULT ''`
 }
 
 /** Seeds the real team directory the first time the table is empty. */
@@ -240,14 +243,55 @@ export async function getItems() {
   }))
 }
 
-export async function getPermits() {
+export async function getPermits(proyek?: string) {
   const sql = db()
-  const rows = (await sql`SELECT * FROM permits ORDER BY proyek, id`) as Record<string, unknown>[]
+  const rows = (
+    proyek
+      ? await sql`SELECT * FROM permits WHERE proyek=${proyek} ORDER BY id`
+      : await sql`SELECT * FROM permits ORDER BY proyek, id`
+  ) as Record<string, unknown>[]
   return rows.map((r) => ({
-    id: Number(r.id), proyek: r.proyek, kode: r.kode, nama: r.nama,
+    id: Number(r.id), proyek: r.proyek, fase: String(r.fase ?? ''), kode: r.kode, nama: r.nama,
     prasyarat: r.prasyarat, status: r.status, tgl: isoDate(r.tgl),
     pic: r.pic, verif: r.verif, dok: Number(r.dok),
   }))
+}
+
+export async function upsertPermit(p: {
+  id?: number
+  proyek: string
+  fase: string
+  kode: string
+  nama: string
+  prasyarat?: string
+  status: string
+  tgl?: string | null
+  pic?: string
+  verif?: string
+  dok?: number
+}): Promise<number> {
+  const sql = db()
+  const prasyarat = p.prasyarat ?? '—'
+  const tgl = p.tgl || null
+  const pic = p.pic ?? ''
+  const verif = p.verif ?? ''
+  const dok = p.dok ?? 0
+  if (p.id) {
+    const [r] = (await sql`
+      UPDATE permits SET proyek=${p.proyek}, fase=${p.fase}, kode=${p.kode}, nama=${p.nama},
+        prasyarat=${prasyarat}, status=${p.status}, tgl=${tgl}, pic=${pic}, verif=${verif}, dok=${dok}
+      WHERE id=${p.id} RETURNING id`) as { id: number }[]
+    return r?.id ?? 0
+  }
+  const [r] = (await sql`
+    INSERT INTO permits (proyek, fase, kode, nama, prasyarat, status, tgl, pic, verif, dok)
+    VALUES (${p.proyek}, ${p.fase}, ${p.kode}, ${p.nama}, ${prasyarat}, ${p.status}, ${tgl}, ${pic}, ${verif}, ${dok})
+    RETURNING id`) as { id: number }[]
+  return r.id
+}
+
+export async function deletePermit(id: number): Promise<void> {
+  await db()`DELETE FROM permits WHERE id=${id}`
 }
 
 // ---- Tim (menu Catatan/direktori) ----
