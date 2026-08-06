@@ -112,6 +112,23 @@ export async function ensureSchema(): Promise<void> {
       uploaded_at  TIMESTAMPTZ DEFAULT now()
     )`
 
+  // Alur tanda tangan lintas divisi untuk tiap dokumen audit — satu baris per
+  // langkah, dikerjakan berurutan menurut kolom "urut".
+  await sql`
+    CREATE TABLE IF NOT EXISTS audit_signoffs (
+      id         SERIAL PRIMARY KEY,
+      doc_id     INTEGER NOT NULL,
+      urut       INTEGER NOT NULL DEFAULT 1,
+      divisi     TEXT NOT NULL,
+      pic        TEXT DEFAULT '',
+      status     TEXT NOT NULL DEFAULT 'Menunggu',
+      catatan    TEXT DEFAULT '',
+      tenggat    DATE,
+      signed_at  TIMESTAMPTZ,
+      updated_at TIMESTAMPTZ DEFAULT now()
+    )`
+  await sql`CREATE INDEX IF NOT EXISTS audit_signoffs_doc_idx ON audit_signoffs (doc_id, urut)`
+
   // Fallback storage: when Vercel Blob is not connected, the file bytes are kept
   // (base64) in these columns so uploads still work with only Neon configured.
   // Added via ALTER so deployments created before the fallback pick them up too.
@@ -346,6 +363,19 @@ export async function deleteTim(id: number): Promise<void> {
 
 // ---- Internal Audit — dokumen (Blob + Neon) ----
 
+export interface SignoffRow {
+  id: number
+  docId: number
+  urut: number
+  divisi: string
+  pic: string
+  status: string
+  catatan: string
+  tenggat: string
+  signedAt: string
+  updatedAt: string
+}
+
 export interface AuditDocRow {
   id: number
   judul: string
@@ -355,13 +385,50 @@ export interface AuditDocRow {
   contentType: string
   catatan: string
   uploadedAt: string
+  alur: SignoffRow[]
+}
+
+const isoTime = (v: unknown): string =>
+  v instanceof Date ? v.toISOString() : v ? String(v) : ''
+
+function toSignoff(r: Record<string, unknown>): SignoffRow {
+  return {
+    id: Number(r.id),
+    docId: Number(r.doc_id),
+    urut: Number(r.urut ?? 1),
+    divisi: String(r.divisi ?? ''),
+    pic: String(r.pic ?? ''),
+    status: String(r.status ?? 'Menunggu'),
+    catatan: String(r.catatan ?? ''),
+    tenggat: r.tenggat ? isoDate(r.tenggat) : '',
+    signedAt: isoTime(r.signed_at),
+    updatedAt: isoTime(r.updated_at),
+  }
+}
+
+/** Every sign-off step in the system, grouped by document id. */
+async function getSignoffsByDoc(): Promise<Map<number, SignoffRow[]>> {
+  const sql = db()
+  const rows = (await sql`
+    SELECT * FROM audit_signoffs ORDER BY doc_id, urut, id`) as Record<string, unknown>[]
+  const map = new Map<number, SignoffRow[]>()
+  for (const r of rows) {
+    const step = toSignoff(r)
+    const list = map.get(step.docId)
+    if (list) list.push(step)
+    else map.set(step.docId, [step])
+  }
+  return map
 }
 
 export async function getAuditDocs(): Promise<AuditDocRow[]> {
   const sql = db()
-  const rows = (await sql`
-    SELECT id, judul, filename, url, size, content_type, catatan, uploaded_at
-    FROM audit_docs ORDER BY uploaded_at DESC`) as Record<string, unknown>[]
+  const [rows, alur] = await Promise.all([
+    sql`
+      SELECT id, judul, filename, url, size, content_type, catatan, uploaded_at
+      FROM audit_docs ORDER BY uploaded_at DESC` as Promise<Record<string, unknown>[]>,
+    getSignoffsByDoc(),
+  ])
   return rows.map((r) => {
     const id = Number(r.id)
     const stored = String(r.url ?? '')
@@ -374,9 +441,103 @@ export async function getAuditDocs(): Promise<AuditDocRow[]> {
       size: Number(r.size ?? 0),
       contentType: String(r.content_type ?? ''),
       catatan: String(r.catatan ?? ''),
-      uploadedAt: r.uploaded_at instanceof Date ? r.uploaded_at.toISOString() : String(r.uploaded_at ?? ''),
+      uploadedAt: isoTime(r.uploaded_at),
+      alur: alur.get(id) ?? [],
     }
   })
+}
+
+// ---- Alur tanda tangan (audit_signoffs) ----
+
+/** Appends one step at the end of a document's chain; returns the new row id. */
+export async function insertSignoff(step: {
+  docId: number
+  divisi: string
+  pic?: string
+  tenggat?: string | null
+  urut?: number
+}): Promise<number> {
+  const sql = db()
+  let urut = step.urut
+  if (!urut) {
+    const [r] = (await sql`
+      SELECT COALESCE(max(urut), 0)::int AS n FROM audit_signoffs WHERE doc_id=${step.docId}`) as {
+      n: number
+    }[]
+    urut = (r?.n ?? 0) + 1
+  }
+  const [row] = (await sql`
+    INSERT INTO audit_signoffs (doc_id, urut, divisi, pic, status, tenggat)
+    VALUES (${step.docId}, ${urut}, ${step.divisi}, ${step.pic ?? ''}, 'Menunggu',
+            ${step.tenggat || null})
+    RETURNING id`) as { id: number }[]
+  return row.id
+}
+
+/** Creates the whole chain for a freshly uploaded document, in the order given. */
+export async function insertSignoffChain(
+  docId: number,
+  divisi: string[],
+  tenggat?: string | null,
+): Promise<number> {
+  const bersih = divisi.map((d) => d.trim()).filter(Boolean)
+  if (!bersih.length) return 0
+  const sql = db()
+  const rows = bersih.map((d, i) => [docId, i + 1, d, '', 'Menunggu', tenggat || null])
+  const { placeholders, params } = bulk(rows)
+  await sql.query(
+    `INSERT INTO audit_signoffs (doc_id, urut, divisi, pic, status, tenggat) VALUES ${placeholders}`,
+    params,
+  )
+  return bersih.length
+}
+
+/**
+ * Patches one step. `signed_at` is stamped when the step becomes
+ * "Ditandatangani" and cleared whenever it moves back to any other status.
+ */
+export async function updateSignoff(
+  id: number,
+  patch: { status?: string; pic?: string; catatan?: string; tenggat?: string | null },
+): Promise<SignoffRow | null> {
+  const sql = db()
+  const [current] = (await sql`SELECT * FROM audit_signoffs WHERE id=${id}`) as Record<
+    string,
+    unknown
+  >[]
+  if (!current) return null
+  const status = patch.status ?? String(current.status ?? 'Menunggu')
+  const pic = patch.pic ?? String(current.pic ?? '')
+  const catatan = patch.catatan ?? String(current.catatan ?? '')
+  const tenggat =
+    patch.tenggat === undefined ? (current.tenggat ? isoDate(current.tenggat) : null) : patch.tenggat || null
+  const signedAt = status === 'Ditandatangani' ? new Date().toISOString() : null
+  const [row] = (await sql`
+    UPDATE audit_signoffs
+       SET status=${status}, pic=${pic}, catatan=${catatan}, tenggat=${tenggat},
+           signed_at=${signedAt}, updated_at=now()
+     WHERE id=${id}
+     RETURNING *`) as Record<string, unknown>[]
+  return row ? toSignoff(row) : null
+}
+
+export async function deleteSignoff(id: number): Promise<void> {
+  const sql = db()
+  const [row] = (await sql`SELECT doc_id FROM audit_signoffs WHERE id=${id}`) as {
+    doc_id: number
+  }[]
+  await sql`DELETE FROM audit_signoffs WHERE id=${id}`
+  if (row) await renumberSignoffs(Number(row.doc_id))
+}
+
+/** Closes gaps in `urut` so the chain stays 1..n after a deletion. */
+async function renumberSignoffs(docId: number): Promise<void> {
+  await db()`
+    UPDATE audit_signoffs s
+       SET urut = t.baris
+      FROM (SELECT id, row_number() OVER (ORDER BY urut, id) AS baris
+              FROM audit_signoffs WHERE doc_id=${docId}) t
+     WHERE s.id = t.id AND s.urut <> t.baris`
 }
 
 export async function insertAuditDoc(doc: {
@@ -420,7 +581,9 @@ export async function getAuditDocData(
 }
 
 export async function deleteAuditDoc(id: number): Promise<void> {
-  await db()`DELETE FROM audit_docs WHERE id=${id}`
+  const sql = db()
+  await sql`DELETE FROM audit_signoffs WHERE doc_id=${id}`
+  await sql`DELETE FROM audit_docs WHERE id=${id}`
 }
 
 // ---- Lampiran item (attachments) — Blob dengan fallback Neon ----
