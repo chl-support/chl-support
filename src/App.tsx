@@ -6,6 +6,7 @@ import type { Horizon, Item, ModuleId, NavId, ProjectId, ScreenId } from '@/data
 import { fetchBootstrap } from '@/lib/api'
 import { AssistantDock } from '@/components/AssistantDock'
 import { ItemDrawer } from '@/components/ItemDrawer'
+import { NewItemDialog } from '@/components/NewItemDialog'
 import { Sidebar } from '@/components/Sidebar'
 import { Topbar } from '@/components/Topbar'
 import type { MatrixStyle } from '@/components/ProjectMatrix'
@@ -58,6 +59,7 @@ export default function App() {
   const [drawer, setDrawer] = useState<Row | null>(null)
   const [density, setDensity] = useState<Density>('rapat')
   const [checklist, setChecklist] = useState(false)
+  const [newItem, setNewItem] = useState(false)
 
   // Items start from the bundled demo data and are replaced by live rows from
   // Neon once /api/bootstrap responds. If the backend is absent, the app keeps
@@ -240,7 +242,7 @@ export default function App() {
                   onHorizon={setHorizon}
                   onFilter={setFilter}
                   onToggleDensity={toggleDensity}
-                  onNewItem={() => {}}
+                  onNewItem={() => setNewItem(true)}
                   onSort={onSort}
                   onOpen={setDrawer}
                 />
@@ -283,6 +285,20 @@ export default function App() {
       </div>
 
       {drawer && <ItemDrawer row={drawer} onClose={() => setDrawer(null)} />}
+
+      {newItem && proyekAktif && (
+        <NewItemDialog
+          defaultProyek={proyekAktif.id}
+          defaultModul={modul}
+          defaultHorizon={horizon}
+          onClose={() => setNewItem(false)}
+          onCreated={(item) => {
+            setItems((prev) => [...prev, item])
+            setDataSource('live')
+            setNewItem(false)
+          }}
+        />
+      )}
 
       <AssistantDock dataSource={dataSource} items={items} proyekAktif={proyekAktif} />
     </div>
