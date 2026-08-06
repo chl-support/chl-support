@@ -61,9 +61,44 @@ Keduanya tidak dimuat di sini: `_ds_manifest.json` mencantumkan `"components": [
 adalah komponen React khusus halaman media kit (Hero, Partners, WhyBrands, …) yang dipasang ke
 `window`. Tidak ada yang bisa dipakai aplikasi ini, jadi yang diambil hanya file tokennya.
 
+## Backend & deploy Vercel
+
+Aplikasi kini punya backend serverless di `api/` yang tersambung ke tiga resource Vercel.
+Data `src/data/` dipakai sebagai **seed** database sekaligus **fallback** bila backend belum aktif —
+jadi app tetap jalan meski satu pun resource belum dikonfigurasi.
+
+| Resource | Env var (nama persis) | Cara set |
+| --- | --- | --- |
+| **Neon Postgres** | `DATABASE_URL` / `POSTGRES_URL` | Vercel → **Storage** → hubungkan Neon (env terisi otomatis) |
+| **Vercel Blob** | `BLOB_READ_WRITE_TOKEN` | Vercel → **Storage** → hubungkan Blob store (otomatis) |
+| **Anthropic (AI)** | `ANTHROPIC_API_KEY` | Vercel → **Settings → Environment Variables** (set manual) |
+
+### Endpoint
+
+| Route | Fungsi |
+| --- | --- |
+| `GET /api/health` | Diagnostik — pastikan ketiga resource terhubung & Neon reachable |
+| `GET /api/bootstrap` | Buat skema + seed data (sekali), lalu kembalikan projects/items/permits dari Neon |
+| `GET·POST /api/items` | Baca / buat / ubah item di Neon |
+| `POST /api/upload?filename=…&itemId=…` | Unggah lampiran ke Blob (body = isi berkas) |
+| `POST /api/ai` | Asisten AI (Anthropic) — body `{ prompt, context? }` |
+
+### Cara memastikan sudah jalan
+
+1. Deploy ke Vercel (import repo — framework Vite terdeteksi otomatis).
+2. Set env var di atas, lalu **redeploy**.
+3. Buka `https://<domain>/api/health` — semua cek harus `ok: true`.
+4. Buka aplikasi: tombol **Asisten AI** kanan-bawah menampilkan status backend, badge
+   **"Data live · Neon"** menandakan tabel sudah terbaca dari database, dan panel item
+   (tombol **+ Unggah**) mengunggah berkas nyata ke Blob.
+
+Skema dibuat & di-seed otomatis saat `/api/bootstrap` pertama kali dipanggil (idempoten —
+aman dipanggil ulang, tidak menimpa data yang sudah ada). Lampiran ≤ 4,5 MB per berkas
+(batas body serverless Vercel).
+
 ## Data
 
-Seluruh data masih dummy dan hidup di `src/data/`. Dua hal yang perlu diganti saat backend siap:
+Seluruh data awal (seed) hidup di `src/data/`. Dua hal yang masih perlu diperhatikan:
 
 - `TODAY` di `src/data/constants.ts` dipatok ke 6 Agu 2026 agar demo selalu konsisten — ganti
   dengan `new Date()`.

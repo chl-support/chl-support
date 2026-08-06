@@ -48,6 +48,8 @@ export interface Modul {
 
 /** The shared Item object — every table in the app renders this shape. */
 export interface Item {
+  /** Present only when the item comes from the database (used for saves/uploads). */
+  id?: number
   judul: string
   modul: ModuleId
   proyek: ProjectId
