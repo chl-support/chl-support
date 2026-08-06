@@ -20,7 +20,7 @@ npm run typecheck
 | --- | --- |
 | **Dashboard Eksekutif** | 6 KPI · matriks proyek × 6 modul · kalender kepatuhan 90 hari · tabel "Perlu perhatian Anda" |
 | **Detail Proyek** | Header proyek · 7 tab modul · sub-tab Jangka Pendek/Panjang · filter status · BlockerBanner |
-| **License & Documentation** | Rantai 11 izin (LSD → PSU) dengan izin terkunci · chip H-180/90/30/7 · tabel izin |
+| **Document & License** | Bagan izin bertahap 4 fase (Pra-Akuisisi → Serah Terima) · CRUD izin per proyek · progress per fase |
 | **Feasibility & Initial Cost** | KPI NPV/IRR/Payback/Margin/BEP/Peak Cash · kurva kas kumulatif · sensitivitas · 11 tahap initial cost |
 | **ItemDrawer** | Panel 480px: stepper verifikasi · form · lampiran · ketergantungan · jejak audit |
 

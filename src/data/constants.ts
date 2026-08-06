@@ -25,7 +25,7 @@ export const MODUL: Modul[] = [
   { id: 'corporate', label: 'Corporate', pendek: 'Corp' },
   { id: 'commercial', label: 'Commercial', pendek: 'Comm' },
   { id: 'land', label: 'Land Acquisition', pendek: 'Land' },
-  { id: 'license', label: 'License & Doc', pendek: 'Izin' },
+  { id: 'license', label: 'Document & License', pendek: 'Izin' },
   { id: 'social', label: 'Social & Litigation', pendek: 'Sosial' },
   { id: 'feasibility', label: 'Feasibility', pendek: 'Feas' },
   { id: 'finance', label: 'Finance & Corr.', pendek: 'Fin' },
@@ -96,7 +96,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: 'corporate', label: 'Corporate', icon: ICON.corporate },
       { id: 'commercial', label: 'Commercial', icon: ICON.commercial },
       { id: 'land', label: 'Land Acquisition', icon: ICON.land },
-      { id: 'license', label: 'License & Doc', icon: ICON.license },
+      { id: 'license', label: 'Document & License', icon: ICON.license },
       { id: 'social', label: 'Social & Litigation', icon: ICON.social },
     ],
   },
@@ -122,6 +122,6 @@ export const NAV_GROUPS: NavGroup[] = [
 export const CURRENT_USER = {
   nama: 'Rani Puspita',
   inisial: 'RP',
-  jabatan: 'Kadiv License & Doc',
+  jabatan: 'Kadiv Document & License',
   notifikasi: 7,
 }

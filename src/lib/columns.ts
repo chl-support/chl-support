@@ -22,7 +22,7 @@ export const COLS_RINGKAS: Col[] = [
   { k: 'risiko', label: 'RISIKO', type: 'risk', w: '90px', align: 'left' },
 ]
 
-/** Permit columns — License & Documentation. */
+/** Permit columns — Document & License. */
 export const COLS_IZIN: Col[] = [
   { k: 'judul', label: 'IZIN', type: 'title', w: 'auto', align: 'left' },
   { k: 'prasyarat', label: 'PRASYARAT', type: 'text', w: '150px', align: 'left' },
