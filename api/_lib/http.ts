@@ -13,6 +13,22 @@ export async function readRawBody(req: VercelRequest): Promise<Buffer> {
   })
 }
 
+/** Streams a base64-stored file back to the browser with the right headers. */
+export function sendFile(
+  res: VercelResponse,
+  file: { data: string; filename: string; contentType: string },
+) {
+  const buf = Buffer.from(file.data, 'base64')
+  res.setHeader('Content-Type', file.contentType || 'application/octet-stream')
+  res.setHeader('Content-Length', buf.length)
+  res.setHeader(
+    'Content-Disposition',
+    `inline; filename="${file.filename.replace(/"/g, '')}"`,
+  )
+  res.setHeader('Cache-Control', 'private, max-age=3600')
+  res.status(200).send(buf)
+}
+
 export function fail(res: VercelResponse, status: number, message: string, extra?: unknown) {
   res.status(status).json({ ok: false, error: message, ...(extra ? { detail: extra } : {}) })
 }

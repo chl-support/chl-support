@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { A, C } from '@/data/constants'
+import { A } from '@/data/constants'
 import type { AuditDoc } from '@/data/types'
 import { deleteAuditDoc, fetchAuditDocs, uploadAuditDoc } from '@/lib/api'
 
@@ -285,8 +285,9 @@ export function InternalAudit() {
       </div>
 
       <div style={{ marginTop: 12, fontSize: 11.5, fontWeight: 600, color: '#9CA3AF' }}>
-        Catatan: batas ukuran berkas ± 4,5 MB per unggahan (batas body serverless Vercel). Warna aksen{' '}
-        <span style={{ color: C.done, fontWeight: 700 }}>hijau</span> menandakan dokumen tersimpan.
+        Catatan: batas ukuran berkas ± 4,5 MB per unggahan (batas body serverless Vercel). Bila Vercel
+        Blob belum terhubung, berkas otomatis disimpan di database Neon sebagai cadangan — unggahan tetap
+        berfungsi. Hubungkan Blob store untuk penyimpanan berkas yang lebih ideal.
       </div>
     </div>
   )
