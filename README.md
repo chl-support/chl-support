@@ -80,6 +80,7 @@ jadi app tetap jalan meski satu pun resource belum dikonfigurasi.
 | `GET /api/health` | Diagnostik — pastikan ketiga resource terhubung & Neon reachable |
 | `GET /api/bootstrap` | Buat skema + seed data (sekali), lalu kembalikan projects/items/permits dari Neon |
 | `GET·POST·DELETE /api/projects` | Menu **Proyek** — CRUD proyek (hapus ikut membersihkan item & izinnya) |
+| `GET·POST·DELETE /api/permits` | Menu **Perizinan** — CRUD izin per proyek, dikelompokkan 4 fase |
 | `GET·POST /api/items` | Baca / buat / ubah item di Neon |
 | `POST /api/upload?filename=…&itemId=…` | Unggah lampiran ke Blob (body = isi berkas) |
 | `POST /api/ai` | Asisten AI (OpenAI) — body `{ prompt, context? }` |

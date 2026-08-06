@@ -95,12 +95,21 @@ export interface Item {
 }
 
 export interface Permit {
+  /** Present only when the permit comes from the database. */
+  id?: number
+  proyek?: ProjectId
+  /** Project phase this permit belongs to (Pra-Akuisisi … Serah Terima). */
+  fase: string
   kode: string
   nama: string
   /** Prerequisite permit code, or '—' for the root of the chain. */
   prasyarat: string
   status: ItemStatus
+  /** ISO yyyy-mm-dd target date. */
   tgl: string
+  pic?: string
+  verif?: string
+  dok?: number
 }
 
 export interface Tahap {

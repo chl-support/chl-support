@@ -2,7 +2,7 @@
  * Thin browser client for the Vercel serverless backend. Every call fails soft:
  * the UI keeps working on bundled demo data when the backend is not reachable.
  */
-import type { AuditDoc, Item, Personel, Project } from '@/data/types'
+import type { AuditDoc, Item, Permit, Personel, Project } from '@/data/types'
 
 export interface HealthCheck {
   configured: boolean
@@ -118,6 +118,41 @@ export async function deleteProject(id: string): Promise<MutateResult> {
     const data = await res.json().catch(() => null)
     if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
     return { ok: true }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
+// ---- Permits (perizinan) ----
+
+export type PermitRecord = Permit & { id: number }
+
+export async function fetchPermits(proyek: string): Promise<PermitRecord[] | null> {
+  const data = await getJson<{ permits: PermitRecord[] }>(`/api/permits?proyek=${encodeURIComponent(proyek)}`)
+  return data ? data.permits : null
+}
+
+export async function savePermit(permit: Permit): Promise<MutateResult> {
+  try {
+    const res = await fetch('/api/permits', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(permit),
+    })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
+    return { ok: true, id: data.id }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
+export async function deletePermit(id: number): Promise<MutateResult> {
+  try {
+    const res = await fetch(`/api/permits?id=${id}`, { method: 'DELETE' })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
+    return { ok: true, id }
   } catch (e) {
     return { ok: false, error: (e as Error).message }
   }
