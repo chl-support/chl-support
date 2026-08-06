@@ -197,6 +197,37 @@ export async function getProjects() {
   }))
 }
 
+export async function upsertProject(p: {
+  id: string
+  nama: string
+  lok?: string
+  ha?: string
+  unit?: number
+  fase?: string
+  warna?: string
+  pemda?: string
+  sla?: string
+}): Promise<string> {
+  const sql = db()
+  const [r] = (await sql`
+    INSERT INTO projects (id, nama, lok, ha, unit, fase, warna, pemda, sla)
+    VALUES (${p.id}, ${p.nama}, ${p.lok ?? ''}, ${p.ha ?? ''}, ${p.unit ?? 0},
+            ${p.fase ?? ''}, ${p.warna ?? '#0F5C6B'}, ${p.pemda ?? ''}, ${p.sla ?? ''})
+    ON CONFLICT (id) DO UPDATE SET
+      nama=EXCLUDED.nama, lok=EXCLUDED.lok, ha=EXCLUDED.ha, unit=EXCLUDED.unit,
+      fase=EXCLUDED.fase, warna=EXCLUDED.warna, pemda=EXCLUDED.pemda, sla=EXCLUDED.sla
+    RETURNING id`) as { id: string }[]
+  return r.id
+}
+
+/** Removes a project and everything scoped to it (items + permits). */
+export async function deleteProject(id: string): Promise<void> {
+  const sql = db()
+  await sql`DELETE FROM items WHERE proyek=${id}`
+  await sql`DELETE FROM permits WHERE proyek=${id}`
+  await sql`DELETE FROM projects WHERE id=${id}`
+}
+
 export async function getItems() {
   const sql = db()
   const rows = (await sql`SELECT * FROM items ORDER BY id`) as Record<string, unknown>[]

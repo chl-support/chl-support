@@ -1,22 +1,25 @@
 import { CURRENT_USER } from '@/data/constants'
-import { PROYEK } from '@/data/projects'
 import type { Project, ProjectId } from '@/data/types'
 
 interface TopbarProps {
   proyekAktif: Project | undefined
+  projects: Project[]
   menuOpen: boolean
   query: string
   onToggleMenu: () => void
   onPickProyek: (id: ProjectId) => void
+  onAddProject: () => void
   onQuery: (q: string) => void
 }
 
 export function Topbar({
   proyekAktif,
+  projects,
   menuOpen,
   query,
   onToggleMenu,
   onPickProyek,
+  onAddProject,
   onQuery,
 }: TopbarProps) {
   return (
@@ -90,7 +93,12 @@ export function Topbar({
               animation: 'hcFadeUp 180ms cubic-bezier(0.22,1,0.36,1)',
             }}
           >
-            {PROYEK.map((p) => (
+            {projects.length === 0 && (
+              <div style={{ padding: '10px 12px', fontSize: 12, fontWeight: 600, color: '#9CA3AF' }}>
+                Belum ada proyek.
+              </div>
+            )}
+            {projects.map((p) => (
               <button
                 key={p.id}
                 type="button"
@@ -129,6 +137,48 @@ export function Topbar({
                 <span style={{ fontSize: 11, fontWeight: 700, color: '#6B7280' }}>{p.fase}</span>
               </button>
             ))}
+            <div style={{ borderTop: '1px solid #EEF0F3', marginTop: 6, paddingTop: 6 }}>
+              <button
+                type="button"
+                className="hc-menu-item"
+                onClick={onAddProject}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '9px 10px',
+                  border: 0,
+                  borderRadius: 9,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  background: 'transparent',
+                  color: '#0F5C6B',
+                  fontSize: 13,
+                  fontWeight: 700,
+                }}
+              >
+                <span
+                  style={{
+                    width: 18,
+                    height: 18,
+                    flex: 'none',
+                    borderRadius: 6,
+                    background: '#0F5C6B14',
+                    color: '#0F5C6B',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 14,
+                    fontWeight: 800,
+                    lineHeight: 1,
+                  }}
+                >
+                  +
+                </span>
+                Proyek baru
+              </button>
+            </div>
           </div>
         )}
       </div>

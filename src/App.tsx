@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { BAGAN } from '@/data/constants'
 import { ITEMS } from '@/data/items'
-import { PROYEK } from '@/data/projects'
-import type { Horizon, Item, ModuleId, NavId, ProjectId, ScreenId } from '@/data/types'
+import type { Horizon, Item, ModuleId, NavId, Project, ProjectId, ScreenId } from '@/data/types'
 import { fetchBootstrap } from '@/lib/api'
 import { AssistantDock } from '@/components/AssistantDock'
 import { ItemDrawer } from '@/components/ItemDrawer'
 import { NewItemDialog } from '@/components/NewItemDialog'
+import { NewProjectDialog } from '@/components/NewProjectDialog'
 import { Sidebar } from '@/components/Sidebar'
 import { Topbar } from '@/components/Topbar'
 import type { MatrixStyle } from '@/components/ProjectMatrix'
@@ -25,15 +25,34 @@ import { InternalAudit } from '@/screens/InternalAudit'
 const isBagan = (id: NavId): id is (typeof BAGAN)[number] =>
   (BAGAN as readonly string[]).includes(id)
 
-/** Shown on project-scoped screens once the demo data is cleared. */
-function NoProjectNotice() {
+/** Shown on project-scoped screens when there are no projects yet. */
+function NoProjectNotice({ onAddProject }: { onAddProject: () => void }) {
   return (
     <div style={{ padding: '64px 20px', textAlign: 'center' }}>
       <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 6 }}>Belum ada proyek</div>
-      <div style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', maxWidth: 440, margin: '0 auto' }}>
-        Data demo sudah dibersihkan. Layar ini akan terisi setelah data proyek ada di database.
-        Sementara itu, buka menu <b>Tim</b> di sidebar untuk mengelola data.
+      <div style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', maxWidth: 440, margin: '0 auto 16px' }}>
+        Layar ini akan terisi setelah ada proyek. Tambahkan proyek pertama Anda untuk mulai
+        mengelola kewajiban, perizinan, dan biaya awal.
       </div>
+      <button
+        type="button"
+        onClick={onAddProject}
+        style={{
+          height: 38,
+          padding: '0 18px',
+          border: 0,
+          borderRadius: 'var(--radius-pill)',
+          background: '#0F5C6B',
+          color: '#fff',
+          fontFamily: 'inherit',
+          fontSize: 13,
+          fontWeight: 700,
+          cursor: 'pointer',
+          boxShadow: 'var(--shadow-sm)',
+        }}
+      >
+        + Proyek baru
+      </button>
     </div>
   )
 }
@@ -47,7 +66,7 @@ const MATRIX_STYLE: MatrixStyle = 'Angka'
 export default function App() {
   const [screen, setScreen] = useState<ScreenId>('dashboard')
   const [nav, setNav] = useState<NavId>('dashboard')
-  const [proyek, setProyek] = useState<ProjectId>('srp')
+  const [proyek, setProyek] = useState<ProjectId>('')
   const [modul, setModul] = useState<ModuleId>('license')
   const [horizon, setHorizon] = useState<Horizon>('Pendek')
   const [filter, setFilter] = useState('Semua')
@@ -60,11 +79,13 @@ export default function App() {
   const [density, setDensity] = useState<Density>('rapat')
   const [checklist, setChecklist] = useState(false)
   const [newItem, setNewItem] = useState(false)
+  const [newProject, setNewProject] = useState(false)
 
   // Items start from the bundled demo data and are replaced by live rows from
   // Neon once /api/bootstrap responds. If the backend is absent, the app keeps
   // running on the demo data — no regression.
   const [items, setItems] = useState<Item[]>(ITEMS)
+  const [projects, setProjects] = useState<Project[]>([])
   const [dataSource, setDataSource] = useState<'demo' | 'live'>('demo')
 
   useEffect(() => {
@@ -72,7 +93,10 @@ export default function App() {
     fetchBootstrap().then((data) => {
       if (alive && data) {
         setItems(data.items)
+        setProjects(data.projects)
         setDataSource('live')
+        // Select the first project once the list arrives (nothing was selected).
+        setProyek((cur) => (data.projects.some((p) => p.id === cur) ? cur : data.projects[0]?.id ?? ''))
       }
     })
     return () => {
@@ -80,10 +104,10 @@ export default function App() {
     }
   }, [])
 
-  const proyekAktif = PROYEK.find((p) => p.id === proyek)
+  const proyekAktif = projects.find((p) => p.id === proyek)
   const rowH = ROW_HEIGHT[density]
 
-  const all = useMemo(() => items.map((i, n) => buildRow(i, n)), [items])
+  const all = useMemo(() => items.map((i, n) => buildRow(i, n, projects)), [items, projects])
 
   /** Blocked + overdue counts, badged on the sidebar. */
   const counts = useMemo(() => {
@@ -106,8 +130,8 @@ export default function App() {
   }, [all, proyek, modul, horizon, filter, q, sortKey, sortDir])
 
   const izinRows = useMemo(
-    () => sortRows(buildPermitRows(proyek), sortKey, sortDir),
-    [proyek, sortKey, sortDir],
+    () => sortRows(buildPermitRows(proyek, projects), sortKey, sortDir),
+    [proyek, projects, sortKey, sortDir],
   )
 
   function goNav(id: NavId) {
@@ -189,12 +213,17 @@ export default function App() {
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         <Topbar
           proyekAktif={proyekAktif}
+          projects={projects}
           menuOpen={projectMenu}
           query={q}
           onToggleMenu={() => setProjectMenu(!projectMenu)}
           onPickProyek={(id) => {
             setProyek(id)
             setProjectMenu(false)
+          }}
+          onAddProject={() => {
+            setProjectMenu(false)
+            setNewProject(true)
           }}
           onQuery={setQ}
         />
@@ -213,6 +242,7 @@ export default function App() {
             {screen === 'dashboard' && (
               <DashboardEksekutif
                 all={all}
+                projects={projects}
                 hariIni={fmtTgl('2026-08-06')}
                 rowH={rowH}
                 sortKey={sortKey}
@@ -247,7 +277,7 @@ export default function App() {
                   onOpen={setDrawer}
                 />
               ) : (
-                <NoProjectNotice />
+                <NoProjectNotice onAddProject={() => setNewProject(true)} />
               ))}
 
             {screen === 'lisensi' &&
@@ -267,11 +297,15 @@ export default function App() {
                   onSelectChain={() => setScreen('lisensi')}
                 />
               ) : (
-                <NoProjectNotice />
+                <NoProjectNotice onAddProject={() => setNewProject(true)} />
               ))}
 
             {screen === 'feasibility' &&
-              (proyekAktif ? <FeasibilityInitialCost proyekAktif={proyekAktif} /> : <NoProjectNotice />)}
+              (proyekAktif ? (
+                <FeasibilityInitialCost proyekAktif={proyekAktif} />
+              ) : (
+                <NoProjectNotice onAddProject={() => setNewProject(true)} />
+              ))}
 
             {screen === 'tim' && <Tim />}
 
@@ -291,11 +325,25 @@ export default function App() {
           defaultProyek={proyekAktif.id}
           defaultModul={modul}
           defaultHorizon={horizon}
+          projects={projects}
           onClose={() => setNewItem(false)}
           onCreated={(item) => {
             setItems((prev) => [...prev, item])
             setDataSource('live')
             setNewItem(false)
+          }}
+        />
+      )}
+
+      {newProject && (
+        <NewProjectDialog
+          existingIds={projects.map((p) => p.id)}
+          onClose={() => setNewProject(false)}
+          onCreated={(project) => {
+            setProjects((prev) => [...prev, project])
+            setProyek(project.id)
+            setDataSource('live')
+            setNewProject(false)
           }}
         />
       )}

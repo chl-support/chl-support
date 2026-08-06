@@ -90,6 +90,39 @@ export interface MutateResult {
   error?: string
 }
 
+// ---- Projects (proyek) ----
+
+export async function fetchProjects(): Promise<Project[] | null> {
+  const data = await getJson<{ projects: Project[] }>('/api/projects')
+  return data ? data.projects : null
+}
+
+export async function saveProject(project: Project): Promise<MutateResult & { slug?: string }> {
+  try {
+    const res = await fetch('/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(project),
+    })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
+    return { ok: true, slug: data.id }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
+export async function deleteProject(id: string): Promise<MutateResult> {
+  try {
+    const res = await fetch(`/api/projects?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
 // ---- Items (tabel proyek) ----
 
 /** Membuat (tanpa id) atau mengubah (dengan id) satu item di Neon. */

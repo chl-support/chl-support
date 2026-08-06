@@ -1,12 +1,12 @@
 import { C, MODUL } from '@/data/constants'
-import { PROYEK } from '@/data/projects'
-import type { ModuleId, ProjectId } from '@/data/types'
+import type { ModuleId, Project, ProjectId } from '@/data/types'
 import { isTerlambat, type Row } from '@/lib/rows'
 
 export type MatrixStyle = 'Angka' | 'Titik'
 
 interface ProjectMatrixProps {
   rows: Row[]
+  projects: Project[]
   gaya: MatrixStyle
   onJump: (proyek: ProjectId, modul: ModuleId) => void
 }
@@ -19,7 +19,7 @@ const LEGEND = [
 ]
 
 /** Health of each bagan per project. Clicking a cell jumps to that module. */
-export function ProjectMatrix({ rows, gaya, onJump }: ProjectMatrixProps) {
+export function ProjectMatrix({ rows, projects, gaya, onJump }: ProjectMatrixProps) {
   const titik = gaya === 'Titik'
   const kolom = MODUL.slice(0, 6)
 
@@ -97,7 +97,17 @@ export function ProjectMatrix({ rows, gaya, onJump }: ProjectMatrixProps) {
             </tr>
           </thead>
           <tbody>
-            {PROYEK.map((p) => (
+            {projects.length === 0 && (
+              <tr>
+                <td
+                  colSpan={kolom.length + 1}
+                  style={{ padding: '20px 8px', fontSize: 12, fontWeight: 600, color: '#9CA3AF' }}
+                >
+                  Belum ada proyek. Tambah proyek dari pemilih proyek di kiri-atas.
+                </td>
+              </tr>
+            )}
+            {projects.map((p) => (
               <tr key={p.id} style={{ borderTop: '1px solid #F1F3F5' }}>
                 <td style={{ padding: '9px 8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>

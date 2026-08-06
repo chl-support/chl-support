@@ -54,7 +54,8 @@ export type ItemStatus =
 
 export type Risiko = 'Rendah' | 'Sedang' | 'Tinggi'
 
-export type ProjectId = 'srp' | 'bgt' | 'rsb' | 'ckp'
+/** Project ids are free-form slugs now that projects are created at runtime. */
+export type ProjectId = string
 
 export interface Project {
   id: ProjectId

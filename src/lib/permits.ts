@@ -1,6 +1,6 @@
 import { C } from '@/data/constants'
 import { PERMIT_DOCS, PERMIT_PICS, PERMIT_VERIFIERS, PERMITS, UNLOCK_GATE } from '@/data/permits'
-import type { Item, ProjectId } from '@/data/types'
+import type { Item, Project, ProjectId } from '@/data/types'
 import { buildRow, statusDotStyle, type Row } from './rows'
 
 /**
@@ -29,7 +29,7 @@ const lockedBadgeStyle = {
 } as const
 
 /** The 11 permits rendered as Item rows for the Daftar izin table. */
-export function buildPermitRows(proyek: ProjectId): Row[] {
+export function buildPermitRows(proyek: ProjectId, projects: Project[] = []): Row[] {
   const gate = lockedIndex()
   return PERMITS.map((p, n) => {
     const item: Item = {
@@ -45,7 +45,7 @@ export function buildPermitRows(proyek: ProjectId): Row[] {
       risiko: n >= 7 ? 'Tinggi' : 'Sedang',
       dok: PERMIT_DOCS[n],
     }
-    const r = buildRow(item, 900 + n)
+    const r = buildRow(item, 900 + n, projects)
     r.prasyarat = p.prasyarat
     r.locked = gate < n
     if (r.locked) {
