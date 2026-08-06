@@ -2,7 +2,7 @@
  * Thin browser client for the Vercel serverless backend. Every call fails soft:
  * the UI keeps working on bundled demo data when the backend is not reachable.
  */
-import type { Item, Project } from '@/data/types'
+import type { Item, Personel, Project } from '@/data/types'
 
 export interface HealthCheck {
   configured: boolean
@@ -73,6 +73,47 @@ export interface UploadResult {
   filename?: string
   size?: number
   error?: string
+}
+
+// ---- Tim (menu Tim / direktori personel) ----
+
+export type TimRecord = Personel & { id: number }
+
+export async function fetchTim(): Promise<TimRecord[] | null> {
+  const data = await getJson<{ tim: TimRecord[] }>('/api/tim')
+  return data ? data.tim : null
+}
+
+export interface MutateResult {
+  ok: boolean
+  id?: number
+  error?: string
+}
+
+export async function saveTim(row: Personel): Promise<MutateResult> {
+  try {
+    const res = await fetch('/api/tim', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(row),
+    })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
+    return { ok: true, id: data.id }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
+export async function deleteTim(id: number): Promise<MutateResult> {
+  try {
+    const res = await fetch(`/api/tim?id=${id}`, { method: 'DELETE' })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
+    return { ok: true, id }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
 }
 
 export async function uploadFile(file: File, itemId?: number): Promise<UploadResult> {

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { BAGAN } from '@/data/constants'
-import { ITEMS, NEW_ITEM_INDEX } from '@/data/items'
+import { ITEMS } from '@/data/items'
 import { PROYEK } from '@/data/projects'
 import type { Horizon, Item, ModuleId, NavId, ProjectId, ScreenId } from '@/data/types'
 import { fetchBootstrap } from '@/lib/api'
@@ -18,9 +18,23 @@ import { DetailProyek } from '@/screens/DetailProyek'
 import { FeasibilityInitialCost } from '@/screens/FeasibilityInitialCost'
 import { LicenseDocumentation } from '@/screens/LicenseDocumentation'
 import { ModulKosong } from '@/screens/ModulKosong'
+import { Tim } from '@/screens/Tim'
 
 const isBagan = (id: NavId): id is (typeof BAGAN)[number] =>
   (BAGAN as readonly string[]).includes(id)
+
+/** Shown on project-scoped screens once the demo data is cleared. */
+function NoProjectNotice() {
+  return (
+    <div style={{ padding: '64px 20px', textAlign: 'center' }}>
+      <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 6 }}>Belum ada proyek</div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', maxWidth: 440, margin: '0 auto' }}>
+        Data demo sudah dibersihkan. Layar ini akan terisi setelah data proyek ada di database.
+        Sementara itu, buka menu <b>Tim</b> di sidebar untuk mengelola data.
+      </div>
+    </div>
+  )
+}
 
 /**
  * Matrix cells show item counts. `ProjectMatrix` also renders a dot-only
@@ -53,7 +67,7 @@ export default function App() {
   useEffect(() => {
     let alive = true
     fetchBootstrap().then((data) => {
-      if (alive && data && data.items.length) {
+      if (alive && data) {
         setItems(data.items)
         setDataSource('live')
       }
@@ -63,7 +77,7 @@ export default function App() {
     }
   }, [])
 
-  const proyekAktif = PROYEK.find((p) => p.id === proyek) ?? PROYEK[0]
+  const proyekAktif = PROYEK.find((p) => p.id === proyek)
   const rowH = ROW_HEIGHT[density]
 
   const all = useMemo(() => items.map((i, n) => buildRow(i, n)), [items])
@@ -107,6 +121,8 @@ export default function App() {
     } else if (id === 'feasibility') {
       setScreen('feasibility')
       setModul('feasibility')
+    } else if (id === 'tim') {
+      setScreen('tim')
     } else if (isBagan(id)) {
       setScreen('proyek')
       setModul(id)
@@ -204,46 +220,55 @@ export default function App() {
               />
             )}
 
-            {screen === 'proyek' && (
-              <DetailProyek
-                proyekAktif={proyekAktif}
-                all={all}
-                rows={rows}
-                modul={modul}
-                horizon={horizon}
-                filter={filter}
-                rowH={rowH}
-                densityLabel={densityLabel}
-                sortKey={sortKey}
-                sortDir={sortDir}
-                onModul={onModul}
-                onHorizon={setHorizon}
-                onFilter={setFilter}
-                onToggleDensity={toggleDensity}
-                onNewItem={() => setDrawer(buildRow(ITEMS[NEW_ITEM_INDEX], NEW_ITEM_INDEX))}
-                onSort={onSort}
-                onOpen={setDrawer}
-              />
-            )}
+            {screen === 'proyek' &&
+              (proyekAktif ? (
+                <DetailProyek
+                  proyekAktif={proyekAktif}
+                  all={all}
+                  rows={rows}
+                  modul={modul}
+                  horizon={horizon}
+                  filter={filter}
+                  rowH={rowH}
+                  densityLabel={densityLabel}
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onModul={onModul}
+                  onHorizon={setHorizon}
+                  onFilter={setFilter}
+                  onToggleDensity={toggleDensity}
+                  onNewItem={() => {}}
+                  onSort={onSort}
+                  onOpen={setDrawer}
+                />
+              ) : (
+                <NoProjectNotice />
+              ))}
 
-            {screen === 'lisensi' && (
-              <LicenseDocumentation
-                proyekAktif={proyekAktif}
-                rows={izinRows}
-                rowH={rowH}
-                densityLabel={densityLabel}
-                sortKey={sortKey}
-                sortDir={sortDir}
-                checklistDibuat={checklist}
-                onBuatChecklist={() => setChecklist(true)}
-                onToggleDensity={toggleDensity}
-                onSort={onSort}
-                onOpen={setDrawer}
-                onSelectChain={() => setScreen('lisensi')}
-              />
-            )}
+            {screen === 'lisensi' &&
+              (proyekAktif ? (
+                <LicenseDocumentation
+                  proyekAktif={proyekAktif}
+                  rows={izinRows}
+                  rowH={rowH}
+                  densityLabel={densityLabel}
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  checklistDibuat={checklist}
+                  onBuatChecklist={() => setChecklist(true)}
+                  onToggleDensity={toggleDensity}
+                  onSort={onSort}
+                  onOpen={setDrawer}
+                  onSelectChain={() => setScreen('lisensi')}
+                />
+              ) : (
+                <NoProjectNotice />
+              ))}
 
-            {screen === 'feasibility' && <FeasibilityInitialCost proyekAktif={proyekAktif} />}
+            {screen === 'feasibility' &&
+              (proyekAktif ? <FeasibilityInitialCost proyekAktif={proyekAktif} /> : <NoProjectNotice />)}
+
+            {screen === 'tim' && <Tim />}
 
             {screen === 'kosong' && (
               <ModulKosong judul={kosongJudul} onBack={() => goNav('dashboard')} />

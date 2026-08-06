@@ -7,9 +7,18 @@ export type ModuleId =
   | 'feasibility'
   | 'finance'
 
-export type NavId = 'dashboard' | 'proyek' | ModuleId | 'audit' | 'pengaturan'
+export type NavId = 'dashboard' | 'proyek' | ModuleId | 'audit' | 'pengaturan' | 'tim'
 
-export type ScreenId = 'dashboard' | 'proyek' | 'lisensi' | 'feasibility' | 'kosong'
+export type ScreenId = 'dashboard' | 'proyek' | 'lisensi' | 'feasibility' | 'kosong' | 'tim'
+
+/** Baris data untuk menu Tim — direktori jabatan/divisi (CRUD tersimpan di Neon). */
+export interface Personel {
+  id?: number
+  jabatan: string
+  nama: string
+  kontak: string
+  catatan: string
+}
 
 export type Horizon = 'Pendek' | 'Panjang'
 

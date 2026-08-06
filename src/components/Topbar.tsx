@@ -3,7 +3,7 @@ import { PROYEK } from '@/data/projects'
 import type { Project, ProjectId } from '@/data/types'
 
 interface TopbarProps {
-  proyekAktif: Project
+  proyekAktif: Project | undefined
   menuOpen: boolean
   query: string
   onToggleMenu: () => void
@@ -57,10 +57,10 @@ export function Topbar({
           }}
         >
           <span
-            style={{ width: 7, height: 7, borderRadius: '50%', background: proyekAktif.warna }}
+            style={{ width: 7, height: 7, borderRadius: '50%', background: proyekAktif?.warna ?? '#9CA3AF' }}
           />
-          <span>{proyekAktif.nama}</span>
-          <span style={{ fontWeight: 600, color: '#9CA3AF', fontSize: 12 }}>{proyekAktif.fase}</span>
+          <span>{proyekAktif?.nama ?? 'Belum ada proyek'}</span>
+          <span style={{ fontWeight: 600, color: '#9CA3AF', fontSize: 12 }}>{proyekAktif?.fase ?? ''}</span>
           <svg
             width="14"
             height="14"
@@ -106,7 +106,7 @@ export function Topbar({
                   borderRadius: 9,
                   cursor: 'pointer',
                   fontFamily: 'inherit',
-                  background: p.id === proyekAktif.id ? '#F0F6F7' : 'transparent',
+                  background: p.id === proyekAktif?.id ? '#F0F6F7' : 'transparent',
                 }}
               >
                 <span
