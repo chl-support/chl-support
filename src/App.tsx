@@ -19,6 +19,7 @@ import { FeasibilityInitialCost } from '@/screens/FeasibilityInitialCost'
 import { LicenseDocumentation } from '@/screens/LicenseDocumentation'
 import { ModulKosong } from '@/screens/ModulKosong'
 import { Tim } from '@/screens/Tim'
+import { InternalAudit } from '@/screens/InternalAudit'
 
 const isBagan = (id: NavId): id is (typeof BAGAN)[number] =>
   (BAGAN as readonly string[]).includes(id)
@@ -123,6 +124,8 @@ export default function App() {
       setModul('feasibility')
     } else if (id === 'tim') {
       setScreen('tim')
+    } else if (id === 'audit') {
+      setScreen('audit')
     } else if (isBagan(id)) {
       setScreen('proyek')
       setModul(id)
@@ -269,6 +272,8 @@ export default function App() {
               (proyekAktif ? <FeasibilityInitialCost proyekAktif={proyekAktif} /> : <NoProjectNotice />)}
 
             {screen === 'tim' && <Tim />}
+
+            {screen === 'audit' && <InternalAudit />}
 
             {screen === 'kosong' && (
               <ModulKosong judul={kosongJudul} onBack={() => goNav('dashboard')} />

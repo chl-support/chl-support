@@ -83,6 +83,7 @@ jadi app tetap jalan meski satu pun resource belum dikonfigurasi.
 | `POST /api/upload?filename=…&itemId=…` | Unggah lampiran ke Blob (body = isi berkas) |
 | `POST /api/ai` | Asisten AI (OpenAI) — body `{ prompt, context? }` |
 | `GET·POST·DELETE /api/tim` | Menu **Tim** — CRUD direktori jabatan/PIC di Neon |
+| `GET·POST·DELETE /api/audit` | Menu **Internal Audit** — unggah dokumen ke Blob, metadata di Neon |
 | `POST /api/reset` | Bersihkan sisa data demo (butuh body `{ "confirm": "HAPUS DEMO" }`) — tabel `tim` tidak disentuh |
 
 > **Catatan data:** data demo (proyek, item, izin, kelayakan) sudah dikosongkan.

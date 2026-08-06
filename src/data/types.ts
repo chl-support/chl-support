@@ -9,7 +9,26 @@ export type ModuleId =
 
 export type NavId = 'dashboard' | 'proyek' | ModuleId | 'audit' | 'pengaturan' | 'tim'
 
-export type ScreenId = 'dashboard' | 'proyek' | 'lisensi' | 'feasibility' | 'kosong' | 'tim'
+export type ScreenId =
+  | 'dashboard'
+  | 'proyek'
+  | 'lisensi'
+  | 'feasibility'
+  | 'kosong'
+  | 'tim'
+  | 'audit'
+
+/** Dokumen pada menu Internal Audit (file di Blob, metadata di Neon). */
+export interface AuditDoc {
+  id: number
+  judul: string
+  filename: string
+  url: string
+  size: number
+  contentType: string
+  catatan: string
+  uploadedAt: string
+}
 
 /** Baris data untuk menu Tim — direktori jabatan/divisi (CRUD tersimpan di Neon). */
 export interface Personel {
