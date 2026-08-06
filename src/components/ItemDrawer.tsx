@@ -1,7 +1,17 @@
-import type { CSSProperties } from 'react'
+import { useRef, useState, type CSSProperties } from 'react'
 import { A, C, STEPS } from '@/data/constants'
 import { fmtTgl } from '@/lib/format'
+import { uploadFile } from '@/lib/api'
 import type { Row } from '@/lib/rows'
+
+interface Uploaded {
+  nama: string
+  url: string
+  size: number
+}
+
+const fmtSize = (n: number): string =>
+  n >= 1_000_000 ? (n / 1_000_000).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1000)) + ' KB'
 
 interface ItemDrawerProps {
   row: Row
@@ -23,6 +33,26 @@ interface Lampiran {
 export function ItemDrawer({ row, onClose }: ItemDrawerProps) {
   const isBlocked = row.blocked
   const cur = Math.max(0, STEPS.indexOf(row.status as (typeof STEPS)[number]))
+
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [uploads, setUploads] = useState<Uploaded[]>([])
+  const [uploading, setUploading] = useState(false)
+  const [uploadErr, setUploadErr] = useState<string | null>(null)
+
+  async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = '' // allow re-picking the same file
+    if (!file) return
+    setUploading(true)
+    setUploadErr(null)
+    const res = await uploadFile(file, row.item.id)
+    if (res.ok && res.url) {
+      setUploads((u) => [{ nama: res.filename ?? file.name, url: res.url!, size: res.size ?? file.size }, ...u])
+    } else {
+      setUploadErr(res.error ?? 'Upload gagal.')
+    }
+    setUploading(false)
+  }
 
   const fields: { label: string; v: string; wide?: boolean }[] = [
     { label: 'PROYEK', v: row.proyekNama, wide: true },
@@ -370,9 +400,12 @@ export function ItemDrawer({ row, onClose }: ItemDrawerProps) {
               <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', color: '#9CA3AF' }}>
                 LAMPIRAN BUKTI
               </div>
+              <input ref={fileRef} type="file" onChange={onPickFile} style={{ display: 'none' }} />
               <button
                 type="button"
                 className="hc-outline"
+                disabled={uploading}
+                onClick={() => fileRef.current?.click()}
                 style={{
                   height: 26,
                   padding: '0 10px',
@@ -381,15 +414,86 @@ export function ItemDrawer({ row, onClose }: ItemDrawerProps) {
                   borderRadius: 'var(--radius-pill)',
                   fontSize: 11,
                   fontWeight: 700,
-                  color: A,
-                  cursor: 'pointer',
+                  color: uploading ? '#9CA3AF' : A,
+                  cursor: uploading ? 'wait' : 'pointer',
                   fontFamily: 'inherit',
                 }}
               >
-                + Unggah
+                {uploading ? 'Mengunggah…' : '+ Unggah'}
               </button>
             </div>
+            {uploadErr && (
+              <div
+                style={{
+                  marginBottom: 8,
+                  padding: '8px 11px',
+                  borderRadius: 8,
+                  background: '#FEF2F2',
+                  border: '1px solid #FECACA',
+                  fontSize: 11.5,
+                  fontWeight: 600,
+                  color: '#B91C1C',
+                }}
+              >
+                {uploadErr}
+              </div>
+            )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+              {uploads.map((u) => (
+                <a
+                  key={u.url}
+                  href={u.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hc-attach"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '9px 11px',
+                    border: '1px solid ' + C.done + '55',
+                    borderRadius: 9,
+                    background: C.done + '0C',
+                    textDecoration: 'none',
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 34,
+                      height: 34,
+                      flex: 'none',
+                      borderRadius: 8,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 9.5,
+                      fontWeight: 800,
+                      color: C.done,
+                      background: C.done + '1A',
+                    }}
+                  >
+                    NEW
+                  </span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span
+                      style={{
+                        display: 'block',
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        color: '#111827',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {u.nama}
+                    </span>
+                    <span style={{ display: 'block', fontSize: 10.5, fontWeight: 600, color: '#6B7280' }}>
+                      {fmtSize(u.size)} · tersimpan di Blob · baru saja
+                    </span>
+                  </span>
+                </a>
+              ))}
               {lampiran.map((l) => (
                 <div
                   key={l.nama}
@@ -453,7 +557,7 @@ export function ItemDrawer({ row, onClose }: ItemDrawerProps) {
                   </svg>
                 </div>
               ))}
-              {row.dok === 0 && (
+              {row.dok === 0 && uploads.length === 0 && (
                 <div
                   style={{
                     padding: 16,

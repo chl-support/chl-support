@@ -1,8 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { BAGAN } from '@/data/constants'
 import { ITEMS, NEW_ITEM_INDEX } from '@/data/items'
 import { PROYEK } from '@/data/projects'
-import type { Horizon, ModuleId, NavId, ProjectId, ScreenId } from '@/data/types'
+import type { Horizon, Item, ModuleId, NavId, ProjectId, ScreenId } from '@/data/types'
+import { fetchBootstrap } from '@/lib/api'
+import { AssistantDock } from '@/components/AssistantDock'
 import { ItemDrawer } from '@/components/ItemDrawer'
 import { Sidebar } from '@/components/Sidebar'
 import { Topbar } from '@/components/Topbar'
@@ -42,10 +44,29 @@ export default function App() {
   const [density, setDensity] = useState<Density>('rapat')
   const [checklist, setChecklist] = useState(false)
 
+  // Items start from the bundled demo data and are replaced by live rows from
+  // Neon once /api/bootstrap responds. If the backend is absent, the app keeps
+  // running on the demo data — no regression.
+  const [items, setItems] = useState<Item[]>(ITEMS)
+  const [dataSource, setDataSource] = useState<'demo' | 'live'>('demo')
+
+  useEffect(() => {
+    let alive = true
+    fetchBootstrap().then((data) => {
+      if (alive && data && data.items.length) {
+        setItems(data.items)
+        setDataSource('live')
+      }
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
+
   const proyekAktif = PROYEK.find((p) => p.id === proyek) ?? PROYEK[0]
   const rowH = ROW_HEIGHT[density]
 
-  const all = useMemo(() => ITEMS.map((i, n) => buildRow(i, n)), [])
+  const all = useMemo(() => items.map((i, n) => buildRow(i, n)), [items])
 
   /** Blocked + overdue counts, badged on the sidebar. */
   const counts = useMemo(() => {
@@ -232,6 +253,8 @@ export default function App() {
       </div>
 
       {drawer && <ItemDrawer row={drawer} onClose={() => setDrawer(null)} />}
+
+      <AssistantDock dataSource={dataSource} items={items} proyekAktif={proyekAktif} />
     </div>
   )
 }
