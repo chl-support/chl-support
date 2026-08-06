@@ -100,6 +100,17 @@ export async function ensureSchema(): Promise<void> {
       created_at TIMESTAMPTZ DEFAULT now(),
       updated_at TIMESTAMPTZ DEFAULT now()
     )`
+  await sql`
+    CREATE TABLE IF NOT EXISTS audit_docs (
+      id           SERIAL PRIMARY KEY,
+      judul        TEXT DEFAULT '',
+      filename     TEXT NOT NULL,
+      url          TEXT NOT NULL,
+      size         INTEGER DEFAULT 0,
+      content_type TEXT DEFAULT '',
+      catatan      TEXT DEFAULT '',
+      uploaded_at  TIMESTAMPTZ DEFAULT now()
+    )`
 }
 
 /** Seeds the real team directory the first time the table is empty. */
@@ -249,4 +260,58 @@ export async function upsertTim(row: {
 
 export async function deleteTim(id: number): Promise<void> {
   await db()`DELETE FROM tim WHERE id=${id}`
+}
+
+// ---- Internal Audit — dokumen (Blob + Neon) ----
+
+export interface AuditDocRow {
+  id: number
+  judul: string
+  filename: string
+  url: string
+  size: number
+  contentType: string
+  catatan: string
+  uploadedAt: string
+}
+
+export async function getAuditDocs(): Promise<AuditDocRow[]> {
+  const sql = db()
+  const rows = (await sql`SELECT * FROM audit_docs ORDER BY uploaded_at DESC`) as Record<string, unknown>[]
+  return rows.map((r) => ({
+    id: Number(r.id),
+    judul: String(r.judul ?? ''),
+    filename: String(r.filename ?? ''),
+    url: String(r.url ?? ''),
+    size: Number(r.size ?? 0),
+    contentType: String(r.content_type ?? ''),
+    catatan: String(r.catatan ?? ''),
+    uploadedAt: r.uploaded_at instanceof Date ? r.uploaded_at.toISOString() : String(r.uploaded_at ?? ''),
+  }))
+}
+
+export async function insertAuditDoc(doc: {
+  judul: string
+  filename: string
+  url: string
+  size: number
+  contentType: string
+  catatan: string
+}): Promise<number> {
+  const sql = db()
+  const [r] = (await sql`
+    INSERT INTO audit_docs (judul, filename, url, size, content_type, catatan)
+    VALUES (${doc.judul}, ${doc.filename}, ${doc.url}, ${doc.size}, ${doc.contentType}, ${doc.catatan})
+    RETURNING id`) as { id: number }[]
+  return r.id
+}
+
+export async function getAuditDocUrl(id: number): Promise<string | null> {
+  const sql = db()
+  const [r] = (await sql`SELECT url FROM audit_docs WHERE id=${id}`) as { url: string }[]
+  return r?.url ?? null
+}
+
+export async function deleteAuditDoc(id: number): Promise<void> {
+  await db()`DELETE FROM audit_docs WHERE id=${id}`
 }
