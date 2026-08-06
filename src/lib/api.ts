@@ -2,7 +2,15 @@
  * Thin browser client for the Vercel serverless backend. Every call fails soft:
  * the UI keeps working on bundled demo data when the backend is not reachable.
  */
-import type { AuditDoc, Item, Permit, Personel, Project } from '@/data/types'
+import type {
+  AuditDoc,
+  Item,
+  Permit,
+  Personel,
+  Project,
+  SignoffStatus,
+  SignoffStep,
+} from '@/data/types'
 
 export interface HealthCheck {
   configured: boolean
@@ -209,15 +217,26 @@ export async function fetchAuditDocs(): Promise<AuditDoc[] | null> {
   return data ? data.docs : null
 }
 
+export interface UploadAuditOptions {
+  judul?: string
+  catatan?: string
+  /** Divisi penanda tangan, urut sesuai alur yang dikehendaki. */
+  divisi?: string[]
+  /** ISO yyyy-mm-dd — tenggat yang dipasang pada setiap langkah. */
+  tenggat?: string
+}
+
 export async function uploadAuditDoc(
   file: File,
-  judul?: string,
-  catatan?: string,
+  opts: UploadAuditOptions = {},
 ): Promise<UploadResult> {
   try {
     const qs = new URLSearchParams({ filename: file.name })
-    if (judul?.trim()) qs.set('judul', judul.trim())
-    if (catatan?.trim()) qs.set('catatan', catatan.trim())
+    if (opts.judul?.trim()) qs.set('judul', opts.judul.trim())
+    if (opts.catatan?.trim()) qs.set('catatan', opts.catatan.trim())
+    // Dipisah "|" agar nama divisi yang mengandung koma tetap utuh.
+    if (opts.divisi?.length) qs.set('divisi', opts.divisi.join('|'))
+    if (opts.tenggat) qs.set('tenggat', opts.tenggat)
     const res = await fetch(`/api/audit?${qs.toString()}`, {
       method: 'POST',
       headers: { 'Content-Type': file.type || 'application/octet-stream' },
@@ -237,6 +256,57 @@ export async function deleteAuditDoc(id: number): Promise<MutateResult> {
     const data = await res.json().catch(() => null)
     if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
     return { ok: true, id }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
+// ---- Internal Audit — alur tanda tangan per divisi ----
+
+/** Menambah satu langkah divisi di ujung alur sebuah dokumen. */
+export async function addSignoff(
+  docId: number,
+  step: { divisi: string; pic?: string; tenggat?: string },
+): Promise<MutateResult> {
+  try {
+    const res = await fetch(`/api/audit?docId=${docId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(step),
+    })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
+    return { ok: true, id: data.id }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
+/** Mengubah satu langkah — tanda tangan, minta revisi, ganti PIC, atur tenggat. */
+export async function updateSignoff(
+  stepId: number,
+  patch: { status?: SignoffStatus; pic?: string; catatan?: string; tenggat?: string | null },
+): Promise<MutateResult & { step?: SignoffStep }> {
+  try {
+    const res = await fetch(`/api/audit?step=${stepId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
+    return { ok: true, id: stepId, step: data.step as SignoffStep }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
+export async function deleteSignoff(stepId: number): Promise<MutateResult> {
+  try {
+    const res = await fetch(`/api/audit?step=${stepId}`, { method: 'DELETE' })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
+    return { ok: true, id: stepId }
   } catch (e) {
     return { ok: false, error: (e as Error).message }
   }

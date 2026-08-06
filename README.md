@@ -23,24 +23,42 @@ npm run typecheck
 | **License & Documentation** | Rantai 11 izin (LSD → PSU) dengan izin terkunci · chip H-180/90/30/7 · tabel izin |
 | **Feasibility & Initial Cost** | KPI NPV/IRR/Payback/Margin/BEP/Peak Cash · kurva kas kumulatif · sensitivitas · 11 tahap initial cost |
 | **ItemDrawer** | Panel 480px: stepper verifikasi · form · lampiran · ketergantungan · jejak audit |
+| **Internal Audit** | Unggah dokumen · 5 KPI alur · filter status · stepper tanda tangan bertahap antar divisi |
 
-Modul P2 (Finance & Correspondence, Internal Audit, Pengaturan) menampilkan `ModulKosong` —
-strukturnya identik dengan modul lain, jadi tidak ada komponen baru yang perlu dirancang.
+Modul P2 (Finance & Correspondence, Pengaturan) menampilkan `ModulKosong` — strukturnya identik
+dengan modul lain, jadi tidak ada komponen baru yang perlu dirancang.
+
+### Monitoring tanda tangan (Internal Audit)
+
+Tiap dokumen membawa **alur tanda tangan**: satu langkah per divisi, dikerjakan **berurutan**.
+Alur baku `Admin Sales → License & Perizinan → Collection → Keuangan → Head Legal → Direksi`
+(diatur di `src/data/divisi.ts`) bisa disusun ulang saat mengunggah, dan tiap dokumen masih bisa
+ditambah/dikurangi divisinya kemudian.
+
+Status per langkah: `Menunggu → Diproses → Ditandatangani`, dengan cabang `Revisi` (dikembalikan
+ke pengunggah beserta alasannya) dan `Dilewati` (divisi tidak relevan untuk dokumen itu). Hanya
+langkah aktif — langkah pertama yang belum tuntas — yang bisa ditindaklanjuti; sisanya terkunci,
+persis seperti gerbang prasyarat pada bagan perizinan. Tenggat per langkah memunculkan chip
+H-30/H-7/Terlambat, dan status dokumen (`Menunggu tanda tangan` / `Perlu revisi` / `Selesai`)
+diturunkan dari alurnya di `src/lib/signoff.ts`.
 
 ## Interaksi yang berfungsi
 
 Pemilih proyek · seluruh item navigasi · 7 tab modul · Jangka Pendek/Panjang · chip filter status ·
 urut kolom · pencarian topbar · toggle kerapatan baris (Rapat/Longgar) · sel matriks → lompat ke
-modulnya · baris tabel → ItemDrawer · "Buat checklist perizinan" · ciutkan sidebar.
+modulnya · baris tabel → ItemDrawer · "Buat checklist perizinan" · ciutkan sidebar ·
+susun alur tanda tangan lewat chip divisi · baris dokumen audit → buka stepper tanda tangan.
 
 ## Struktur
 
 ```
 src/
   data/         Data dummy + konstanta (warna, status, modul, ikon, navigasi)
-  lib/          Format tanggal/rupiah, derivasi Row, kolom tabel, logika gerbang izin
+  lib/          Format tanggal/rupiah, derivasi Row, kolom tabel, logika gerbang izin,
+                ringkasan alur tanda tangan (signoff.ts)
   components/   DataTable, ItemDrawer, DependencyChain, ProjectMatrix, ComplianceCalendar,
-                CashCurve, KpiCard, BlockerBanner, EmptyState, Sidebar, Topbar, PillButton
+                CashCurve, KpiCard, BlockerBanner, EmptyState, Sidebar, Topbar, PillButton,
+                SignoffStepper
   screens/      Empat layar P0 + ModulKosong
   styles/       global.css — token aplikasi, reset, dan seluruh state hover/focus
 project/        Bundel handoff Claude Design (sumber desain + design system)
@@ -85,7 +103,7 @@ jadi app tetap jalan meski satu pun resource belum dikonfigurasi.
 | `POST /api/upload?filename=…&itemId=…` | Unggah lampiran ke Blob (body = isi berkas) |
 | `POST /api/ai` | Asisten AI (OpenAI) — body `{ prompt, context? }` |
 | `GET·POST·DELETE /api/tim` | Menu **Tim** — CRUD direktori jabatan/PIC di Neon |
-| `GET·POST·DELETE /api/audit` | Menu **Internal Audit** — unggah dokumen ke Blob, metadata di Neon |
+| `GET·POST·PATCH·DELETE /api/audit` | Menu **Internal Audit** — unggah dokumen ke Blob + alur tanda tangan lintas divisi di Neon |
 | `POST /api/reset` | Bersihkan sisa data demo (butuh body `{ "confirm": "HAPUS DEMO" }`) — tabel `tim` tidak disentuh |
 
 > **Catatan data:** data demo (proyek, item, izin, kelayakan) sudah dikosongkan.

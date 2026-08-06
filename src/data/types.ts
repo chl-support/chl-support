@@ -18,6 +18,31 @@ export type ScreenId =
   | 'tim'
   | 'audit'
 
+/**
+ * Status satu langkah tanda tangan. Menunggu → Diproses → Ditandatangani,
+ * dengan Revisi (dikembalikan ke pengunggah) dan Dilewati (tidak relevan)
+ * sebagai cabang.
+ */
+export type SignoffStatus = 'Menunggu' | 'Diproses' | 'Ditandatangani' | 'Revisi' | 'Dilewati'
+
+/** Satu langkah pada alur tanda tangan sebuah dokumen audit. */
+export interface SignoffStep {
+  id: number
+  docId: number
+  /** Urutan langkah, 1..n — dokumen ditandatangani berurutan. */
+  urut: number
+  divisi: string
+  /** Nama penanda tangan dari divisi tersebut. */
+  pic: string
+  status: SignoffStatus
+  catatan: string
+  /** ISO yyyy-mm-dd — tenggat tanda tangan langkah ini. */
+  tenggat: string
+  /** ISO timestamp saat langkah ditandatangani; kosong bila belum. */
+  signedAt: string
+  updatedAt: string
+}
+
 /** Dokumen pada menu Internal Audit (file di Blob, metadata di Neon). */
 export interface AuditDoc {
   id: number
@@ -28,6 +53,8 @@ export interface AuditDoc {
   contentType: string
   catatan: string
   uploadedAt: string
+  /** Alur tanda tangan lintas divisi, terurut menaik menurut `urut`. */
+  alur: SignoffStep[]
 }
 
 /** Baris data untuk menu Tim — direktori jabatan/divisi (CRUD tersimpan di Neon). */
