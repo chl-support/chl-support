@@ -1,0 +1,258 @@
+/* =============================================================
+   Dhany Indraswara — Design Tokens
+   colors_and_type.css
+   ============================================================= */
+
+/* ---------- Plus Jakarta Sans (self-hosted) ---------- */
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('fonts/PlusJakartaSans-ExtraLight.ttf') format('truetype');
+  font-weight: 200; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('fonts/PlusJakartaSans-ExtraLightItalic.ttf') format('truetype');
+  font-weight: 200; font-style: italic; font-display: swap;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('fonts/PlusJakartaSans-Light.ttf') format('truetype');
+  font-weight: 300; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('fonts/PlusJakartaSans-LightItalic.ttf') format('truetype');
+  font-weight: 300; font-style: italic; font-display: swap;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('fonts/PlusJakartaSans-Regular.ttf') format('truetype');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('fonts/PlusJakartaSans-Italic.ttf') format('truetype');
+  font-weight: 400; font-style: italic; font-display: swap;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('fonts/PlusJakartaSans-Medium.ttf') format('truetype');
+  font-weight: 500; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('fonts/PlusJakartaSans-MediumItalic.ttf') format('truetype');
+  font-weight: 500; font-style: italic; font-display: swap;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('fonts/PlusJakartaSans-SemiBold.ttf') format('truetype');
+  font-weight: 600; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('fonts/PlusJakartaSans-SemiBoldItalic.ttf') format('truetype');
+  font-weight: 600; font-style: italic; font-display: swap;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('fonts/PlusJakartaSans-Bold.ttf') format('truetype');
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('fonts/PlusJakartaSans-BoldItalic.ttf') format('truetype');
+  font-weight: 700; font-style: italic; font-display: swap;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('fonts/PlusJakartaSans-ExtraBold.ttf') format('truetype');
+  font-weight: 800; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('fonts/PlusJakartaSans-ExtraBoldItalic.ttf') format('truetype');
+  font-weight: 800; font-style: italic; font-display: swap;
+}
+
+:root {
+  /* ---------- Brand Colors ---------- */
+  --brand-primary:        #02A0C1;   /* Cyan-Teal — primary CTA, links, accents */
+  --brand-secondary:      #3581E1;   /* Royal Blue — secondary CTA, highlight */
+  --brand-soft-blue:      #D7E8FB;   /* Soft blue tint — pill backgrounds, halos */
+  --brand-soft-teal:      #97D1C6;   /* Muted teal — supporting fills */
+  --brand-accent-green:   #D6FD91;   /* Lime — emphasis chip / availability */
+
+  /* ---------- Neutrals ---------- */
+  --neutral-light:        #EDEDED;   /* Background grey */
+  --neutral-page:         #F7F8FA;   /* Page background */
+  --neutral-white:        #FFFFFF;
+  --neutral-line:         #E6E8EC;   /* Divider lines */
+
+  /* ---------- Text ---------- */
+  --text-primary:         #1F1F1F;   /* Main text */
+  --text-secondary:       #4A4A4A;   /* Body */
+  --text-muted:           #7A7A7A;   /* Captions, meta */
+  --text-on-brand:        #FFFFFF;   /* Text on cyan/blue */
+
+  /* ---------- Semantic Aliases ---------- */
+  --fg-1: var(--text-primary);
+  --fg-2: var(--text-secondary);
+  --fg-3: var(--text-muted);
+  --bg-1: var(--neutral-page);
+  --bg-2: var(--neutral-white);
+  --bg-3: var(--neutral-light);
+  --link: var(--brand-primary);
+
+  /* ---------- Glass / Blur Surfaces ---------- */
+  --glass-bg:             rgba(255, 255, 255, 0.55);
+  --glass-bg-strong:      rgba(255, 255, 255, 0.72);
+  --glass-border:         rgba(255, 255, 255, 0.65);
+  --glass-blur:           blur(28px) saturate(140%);
+
+  /* ---------- Accent Halos (blurred orbs in backgrounds) ---------- */
+  --halo-primary:         rgba(2, 160, 193, 0.42);
+  --halo-secondary:       rgba(53, 129, 225, 0.38);
+  --halo-soft-blue:       rgba(215, 232, 251, 0.95);
+  --halo-green:           rgba(214, 253, 145, 0.55);
+
+  /* ---------- Gradients ---------- */
+  --grad-primary:    linear-gradient(135deg, #02A0C1 0%, #3581E1 100%);
+  --grad-soft-blue:  linear-gradient(180deg, #FFFFFF 0%, #D7E8FB 100%);
+  --grad-page:       radial-gradient(120% 80% at 10% 0%, #EAF3FE 0%, #F7F8FA 50%, #FFFFFF 100%);
+
+  /* ---------- Radii ---------- */
+  --radius-xs:  8px;
+  --radius-sm:  14px;
+  --radius-md:  20px;
+  --radius-lg:  28px;
+  --radius-xl:  36px;
+  --radius-pill: 999px;
+
+  /* ---------- Shadows ---------- */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 20px 48px rgba(15, 23, 42, 0.10);
+  --shadow-glow-primary: 0 18px 48px rgba(2, 160, 193, 0.28);
+  --shadow-glow-secondary: 0 18px 48px rgba(53, 129, 225, 0.28);
+  --shadow-inner-soft: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+
+  /* ---------- Spacing ---------- */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* ---------- Typography ---------- */
+  --font-family-base: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+
+  --fw-medium:    500;
+  --fw-semibold:  600;
+  --fw-bold:      700;
+  --fw-extrabold: 800;
+
+  /* Type scale (desktop) */
+  --fs-display:   72px;   /* Hero */
+  --fs-h1:        56px;
+  --fs-h2:        40px;
+  --fs-h3:        28px;
+  --fs-h4:        22px;
+  --fs-body-lg:   18px;
+  --fs-body:      16px;
+  --fs-small:     14px;
+  --fs-caption:   12px;
+  --fs-eyebrow:   13px;   /* uppercased */
+
+  --lh-tight:   1.05;
+  --lh-snug:    1.2;
+  --lh-base:    1.5;
+  --lh-relaxed: 1.65;
+
+  --tracking-tight:   -0.02em;
+  --tracking-normal:  0;
+  --tracking-wide:    0.08em;   /* eyebrow / labels */
+}
+
+/* ---------- Base Reset / Utilities ---------- */
+html, body {
+  font-family: var(--font-family-base);
+  color: var(--fg-1);
+  background: var(--bg-1);
+  font-weight: var(--fw-medium);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---------- Semantic text styles ---------- */
+.t-display {
+  font-size: var(--fs-display);
+  font-weight: var(--fw-extrabold);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tight);
+}
+.t-h1 {
+  font-size: var(--fs-h1);
+  font-weight: var(--fw-extrabold);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tight);
+}
+.t-h2 {
+  font-size: var(--fs-h2);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--tracking-tight);
+}
+.t-h3 {
+  font-size: var(--fs-h3);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-snug);
+}
+.t-h4 {
+  font-size: var(--fs-h4);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-snug);
+}
+.t-body-lg {
+  font-size: var(--fs-body-lg);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-relaxed);
+  color: var(--fg-2);
+}
+.t-body {
+  font-size: var(--fs-body);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-base);
+  color: var(--fg-2);
+}
+.t-small {
+  font-size: var(--fs-small);
+  font-weight: var(--fw-medium);
+  line-height: var(--lh-base);
+  color: var(--fg-3);
+}
+.t-eyebrow {
+  font-size: var(--fs-eyebrow);
+  font-weight: var(--fw-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--brand-primary);
+}
+
+/* ---------- Glass card primitive ---------- */
+.glass {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md), var(--shadow-inner-soft);
+}

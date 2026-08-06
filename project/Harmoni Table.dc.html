@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/dhany-indraswara-design-system-58b8bd42-42bc-4def-9bde-2db6efb9b7af/colors_and_type.css">
+<link rel="stylesheet" href="_ds/dhany-indraswara-design-system-58b8bd42-42bc-4def-9bde-2db6efb9b7af/ui_kits/media_kit_website/styles.css">
+<script src="_ds/dhany-indraswara-design-system-58b8bd42-42bc-4def-9bde-2db6efb9b7af/_ds_bundle.js"></script>
+</helmet>
+<div style="width:100%;overflow-x:auto">
+  <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+    <thead>
+      <tr style="background:#FAFBFC;border-bottom:1px solid #E5E7EB">
+        <sc-for list="{{ headers }}" as="h" hint-placeholder-count="8">
+          <th style="{{ h.thStyle }}">
+            <button onClick="{{ h.go }}" style="{{ h.btnStyle }}" style-hover="color:#111827">
+              <span>{{ h.label }}</span>
+              <span style="{{ h.arrowStyle }}">{{ h.arrow }}</span>
+            </button>
+          </th>
+        </sc-for>
+      </tr>
+    </thead>
+    <tbody>
+      <sc-for list="{{ list }}" as="r" hint-placeholder-count="8">
+        <tr onClick="{{ r.open }}" style="{{ r.trStyle }}" style-hover="background:#F7FAFA">
+          <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="8">
+            <td style="{{ c.tdStyle }}">
+
+              <sc-if value="{{ c.isTitle }}" hint-placeholder-val="{{ true }}">
+                <span style="display:flex;align-items:center;gap:9px;min-width:0">
+                  <span style="{{ c.markStyle }}"></span>
+                  <span style="min-width:0;flex:1">
+                    <span style="display:block;font-size:13px;font-weight:700;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.v }}</span>
+                    <span style="display:block;font-size:10.5px;font-weight:600;color:#9CA3AF;letter-spacing:0.02em">{{ c.sub }}</span>
+                  </span>
+                </span>
+              </sc-if>
+
+              <sc-if value="{{ c.isBadge }}" hint-placeholder-val="{{ false }}">
+                <span style="{{ c.badgeStyle }}"><span style="{{ c.dotStyle }}"></span>{{ c.v }}</span>
+              </sc-if>
+
+              <sc-if value="{{ c.isPerson }}" hint-placeholder-val="{{ false }}">
+                <span style="display:flex;align-items:center;gap:8px;min-width:0">
+                  <span style="{{ c.avaStyle }}">{{ c.init }}</span>
+                  <span style="font-size:12.5px;font-weight:600;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.v }}</span>
+                </span>
+              </sc-if>
+
+              <sc-if value="{{ c.isDate }}" hint-placeholder-val="{{ false }}">
+                <span style="display:flex;align-items:center;gap:8px">
+                  <span style="font-size:12.5px;font-weight:600;color:#374151;font-variant-numeric:tabular-nums;white-space:nowrap">{{ c.v }}</span>
+                  <span style="{{ c.chipStyle }}">{{ c.chip }}</span>
+                </span>
+              </sc-if>
+
+              <sc-if value="{{ c.isChip }}" hint-placeholder-val="{{ false }}">
+                <span style="{{ c.chipStyle }}">{{ c.v }}</span>
+              </sc-if>
+
+              <sc-if value="{{ c.isDoc }}" hint-placeholder-val="{{ false }}">
+                <span style="{{ c.docStyle }}">{{ c.v }}</span>
+              </sc-if>
+
+              <sc-if value="{{ c.isPlain }}" hint-placeholder-val="{{ false }}">
+                <span style="{{ c.plainStyle }}">{{ c.v }}</span>
+              </sc-if>
+
+            </td>
+          </sc-for>
+        </tr>
+      </sc-for>
+    </tbody>
+  </table>
+
+  <sc-if value="{{ kosong }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;align-items:center;padding:52px 20px;text-align:center">
+      <div style="width:44px;height:44px;border-radius:var(--radius-sm);background:#F1F3F5;display:flex;align-items:center;justify-content:center;margin-bottom:12px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><path d="M14 2v6h6"></path></svg>
+      </div>
+      <div style="font-size:14px;font-weight:800;letter-spacing:-0.015em;margin-bottom:4px">Tidak ada item pada filter ini</div>
+      <div style="font-size:12.5px;font-weight:600;color:#6B7280">Ubah filter status, ganti horizon, atau buat item baru.</div>
+    </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200,&quot;height&quot;:420},&quot;rows&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Row[]&quot;},&quot;cols&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Col[]&quot;},&quot;rowH&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:38,&quot;min&quot;:32,&quot;max&quot;:56,&quot;unit&quot;:&quot;px&quot;},&quot;sortKey&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;tgl&quot;},&quot;sortDir&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;asc&quot;,&quot;options&quot;:[&quot;asc&quot;,&quot;desc&quot;]},&quot;onSort&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(k: string) =&gt; void&quot;}}">
+const ARROW = { asc: '↑', desc: '↓' };
+
+class Component extends DCLogic {
+  renderVals() {
+    const cols = this.props.cols || [];
+    const rows = this.props.rows || [];
+    const rowH = this.props.rowH || 38;
+    const sortKey = this.props.sortKey;
+    const sortDir = this.props.sortDir || 'asc';
+    const onSort = this.props.onSort;
+
+    const headers = cols.map((c, n) => {
+      const active = c.k === sortKey;
+      const pl = n === 0 ? '16px' : '10px';
+      const pr = n === cols.length - 1 ? '16px' : '10px';
+      return {
+        label: c.label, arrow: active ? ARROW[sortDir] : '',
+        arrowStyle: 'font-size:10px;font-weight:800;color:' + (active ? '#0F5C6B' : 'transparent'),
+        thStyle: 'padding:0;width:' + c.w + ';border:0',
+        btnStyle: 'display:flex;align-items:center;gap:5px;width:100%;height:34px;padding:0 ' + pr + ' 0 ' + pl + ';border:0;background:transparent;cursor:pointer;font-family:inherit;font-size:10.5px;letter-spacing:0.055em;font-weight:700;color:' + (active ? '#0F5C6B' : '#9CA3AF') + ';justify-content:' + (c.align === 'right' ? 'flex-end' : 'flex-start'),
+        go: () => { if (onSort) onSort(c.k); }
+      };
+    });
+
+    const list = rows.map(r => ({
+      key: r.key,
+      open: r.open,
+      trStyle: 'border-bottom:1px solid #F1F3F5;cursor:pointer;height:' + rowH + 'px;background:' + (r.blocked ? '#FFFCFC' : 'transparent'),
+      cells: cols.map((c, n) => {
+        const pl = n === 0 ? '16px' : '10px';
+        const pr = n === cols.length - 1 ? '16px' : '10px';
+        const base = 'padding:0 ' + pr + ' 0 ' + pl + ';height:' + rowH + 'px;overflow:hidden;text-align:' + (c.align === 'right' ? 'right' : 'left');
+        const cell = {
+          isTitle: false, isBadge: false, isPerson: false, isDate: false, isChip: false, isDoc: false, isPlain: false,
+          tdStyle: base, v: '', sub: '', chip: '', init: ''
+        };
+        if (c.type === 'title') {
+          cell.isTitle = true; cell.v = r.judul; cell.sub = r.kode + ' · Jangka ' + r.horizon;
+          cell.markStyle = 'width:3px;height:22px;border-radius:2px;flex:none;background:' + (r.blocked ? '#DC2626' : r.statusWarna);
+        } else if (c.type === 'status') {
+          cell.isBadge = true; cell.v = r.status; cell.badgeStyle = r.statusStyle; cell.dotStyle = r.dotStyle;
+        } else if (c.type === 'person') {
+          const name = c.k === 'pic' ? r.pic : r.verif;
+          const init = c.k === 'pic' ? r.picInit : r.verifInit;
+          const bg = c.k === 'pic' ? '#0F5C6B' : '#8FA3B8';
+          cell.isPerson = true; cell.v = name; cell.init = init;
+          cell.avaStyle = 'width:24px;height:24px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:800;color:#fff;background:' + bg;
+        } else if (c.type === 'date') {
+          cell.isDate = true; cell.v = r.tglTxt; cell.chip = r.chip; cell.chipStyle = r.chipStyle;
+        } else if (c.type === 'risk') {
+          cell.isChip = true; cell.v = r.risiko; cell.chipStyle = r.risikoStyle;
+        } else if (c.type === 'doc') {
+          cell.isDoc = true; cell.v = String(r.dok);
+          cell.docStyle = 'display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:22px;padding:0 7px;border-radius:6px;font-size:11.5px;font-weight:700;color:' + (r.dok ? '#374151' : '#C6CBD3') + ';background:' + (r.dok ? '#F1F3F5' : 'transparent');
+        } else if (c.type === 'money') {
+          cell.isPlain = true; cell.v = r.nilaiTxt;
+          cell.plainStyle = 'font-size:12.5px;font-weight:' + (r.nilai ? '700' : '600') + ';font-variant-numeric:tabular-nums;color:' + (r.nilai ? '#111827' : '#C6CBD3');
+        } else {
+          cell.isPlain = true; cell.v = r[c.k] == null ? '—' : String(r[c.k]);
+          cell.plainStyle = 'font-size:12.5px;font-weight:600;color:#374151;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+        }
+        return cell;
+      })
+    }));
+
+    return { headers, list, kosong: rows.length === 0 };
+  }
+}
+
+</script>
+</body>
+</html>

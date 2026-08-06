@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/dhany-indraswara-design-system-58b8bd42-42bc-4def-9bde-2db6efb9b7af/colors_and_type.css">
+<link rel="stylesheet" href="_ds/dhany-indraswara-design-system-58b8bd42-42bc-4def-9bde-2db6efb9b7af/ui_kits/media_kit_website/styles.css">
+<script src="_ds/dhany-indraswara-design-system-58b8bd42-42bc-4def-9bde-2db6efb9b7af/_ds_bundle.js"></script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap">
+<style>
+html,body{margin:0;padding:0;height:100%}
+body{background:var(--neutral-page);color:#111827;font-family:var(--font-family-base);font-weight:var(--fw-medium);-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+a{color:#0F5C6B;text-decoration:none}
+a:hover{text-decoration:underline;text-underline-offset:3px}
+button{font-family:inherit}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:#D5D9E0;border-radius:9px;border:2px solid #F7F8FA}
+::-webkit-scrollbar-thumb:hover{background:#B9C0CA}
+::-webkit-scrollbar-track{background:transparent}
+@keyframes hcDrawerIn{from{transform:translateX(24px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes hcFadeUp{from{transform:translateY(8px);opacity:0}to{transform:translateY(0);opacity:1}}
+</style>
+</helmet>
+
+<div style="display:flex;height:100vh;overflow:hidden;background:#F7F8FA;font-size:14px;line-height:1.45">
+
+<aside style="{{ sidebarStyle }}">
+  <div style="height:56px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid #E5E7EB;flex:none">
+    <div style="width:28px;height:28px;flex:none;border-radius:8px;background:linear-gradient(150deg,#0F5C6B,#12808f);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:13px;letter-spacing:-0.02em">H</div>
+    <sc-if value="{{ sidebarOpen }}" hint-placeholder-val="{{ true }}">
+      <div style="min-width:0">
+        <div style="font-weight:800;font-size:13px;letter-spacing:-0.02em;white-space:nowrap">Harmoni</div>
+        <div style="font-size:10px;color:#9CA3AF;font-weight:600;letter-spacing:0.06em;white-space:nowrap">COMMAND CENTER</div>
+      </div>
+    </sc-if>
+  </div>
+
+  <nav style="flex:1;overflow-y:auto;overflow-x:hidden;padding:12px 10px 20px">
+    <sc-for list="{{ navGroups }}" as="g" hint-placeholder-count="4">
+      <div style="margin-bottom:14px">
+        <sc-if value="{{ g.showLabel }}" hint-placeholder-val="{{ true }}">
+          <div style="font-size:10px;font-weight:700;letter-spacing:0.09em;color:#9CA3AF;padding:6px 10px 6px">{{ g.label }}</div>
+        </sc-if>
+        <sc-for list="{{ g.items }}" as="n" hint-placeholder-count="3">
+          <button onClick="{{ n.go }}" title="{{ n.label }}" style="{{ n.style }}" style-hover="background:#EEF2F4;color:#111827">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="{{ n.icon }}"></path></svg>
+            <sc-if value="{{ sidebarOpen }}" hint-placeholder-val="{{ true }}">
+              <span style="flex:1;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ n.label }}</span>
+            </sc-if>
+            <sc-if value="{{ n.showCount }}" hint-placeholder-val="{{ true }}">
+              <span style="{{ n.countStyle }}">{{ n.count }}</span>
+            </sc-if>
+          </button>
+        </sc-for>
+      </div>
+    </sc-for>
+  </nav>
+
+  <div style="flex:none;border-top:1px solid #E5E7EB;padding:10px">
+    <button onClick="{{ toggleSidebar }}" style="width:100%;display:flex;align-items:center;gap:10px;padding:8px 10px;border:0;background:transparent;border-radius:8px;color:#6B7280;font-size:12px;font-weight:600;cursor:pointer" style-hover="background:#EEF2F4;color:#111827">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M15 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4M9 3v18"></path></svg>
+      <sc-if value="{{ sidebarOpen }}" hint-placeholder-val="{{ true }}"><span style="white-space:nowrap">Ciutkan menu</span></sc-if>
+    </button>
+  </div>
+</aside>
+
+<div style="flex:1;min-width:0;display:flex;flex-direction:column">
+
+  <header style="height:56px;flex:none;background:var(--glass-bg-strong);backdrop-filter:var(--glass-blur);border-bottom:1px solid #E5E7EB;display:flex;align-items:center;gap:14px;padding:0 20px;position:relative;z-index:30">
+    <div style="position:relative">
+      <button onClick="{{ toggleProjectMenu }}" style="display:flex;align-items:center;gap:9px;height:36px;padding:0 12px;border:1px solid #E5E7EB;background:#fff;border-radius:9px;cursor:pointer;font-size:13px;font-weight:700;color:#111827" style-hover="border-color:#0F5C6B">
+        <span style="width:7px;height:7px;border-radius:50%;background: {{ proyekAktif.warna }}"></span>
+        <span>{{ proyekAktif.nama }}</span>
+        <span style="font-weight:600;color:#9CA3AF;font-size:12px">{{ proyekAktif.fase }}</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+      </button>
+      <sc-if value="{{ projectMenuOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;top:44px;left:0;width:330px;background:#fff;border:1px solid #E5E7EB;border-radius:12px;box-shadow:var(--shadow-lg);padding:6px;animation:hcFadeUp 180ms cubic-bezier(0.22,1,0.36,1)">
+          <sc-for list="{{ proyekList }}" as="p" hint-placeholder-count="4">
+            <button onClick="{{ p.pick }}" style="{{ p.menuStyle }}" style-hover="background:#F3F6F7">
+              <span style="width:7px;height:7px;border-radius:50%;flex:none;background: {{ p.warna }}"></span>
+              <span style="flex:1;text-align:left">
+                <span style="display:block;font-size:13px;font-weight:700;color:#111827">{{ p.nama }}</span>
+                <span style="display:block;font-size:11px;font-weight:600;color:#6B7280">{{ p.meta }}</span>
+              </span>
+              <span style="font-size:11px;font-weight:700;color:#6B7280">{{ p.fase }}</span>
+            </button>
+          </sc-for>
+        </div>
+      </sc-if>
+    </div>
+
+    <div style="flex:1"></div>
+
+    <div style="display:flex;align-items:center;gap:6px;height:34px;padding:0 12px;border:1px solid #E5E7EB;background:#fff;border-radius:var(--radius-pill);width:260px">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+      <input value="{{ query }}" onChange="{{ onQuery }}" placeholder="Cari item, dokumen, PIC…" style="border:0;outline:0;flex:1;min-width:0;font-family:inherit;font-size:12.5px;font-weight:600;color:#111827;background:transparent">
+    </div>
+
+    <button style="position:relative;width:36px;height:36px;border:1px solid #E5E7EB;background:#fff;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="border-color:#0F5C6B">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
+      <span style="position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;padding:0 4px;border-radius:var(--radius-pill);background:#DC2626;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid #fff">7</span>
+    </button>
+
+    <div style="display:flex;align-items:center;gap:9px;padding-left:12px;border-left:1px solid #E5E7EB">
+      <div style="width:32px;height:32px;border-radius:50%;background:#0F5C6B;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800">RP</div>
+      <div style="line-height:1.25">
+        <div style="font-size:12.5px;font-weight:700">Rani Puspita</div>
+        <div style="font-size:10.5px;font-weight:600;color:#9CA3AF">Kadiv License &amp; Doc</div>
+      </div>
+    </div>
+  </header>
+
+  <main style="flex:1;overflow-y:auto;position:relative">
+    <div style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(700px 380px at 12% -8%, rgba(15,92,107,0.07), transparent 70%), radial-gradient(620px 340px at 92% 2%, rgba(53,129,225,0.06), transparent 70%)"></div>
+    <div style="position:relative;padding:22px 26px 60px;max-width:1560px">
+
+      <!-- ============ DASHBOARD ============ -->
+      <sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ true }}">
+        <div>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:18px">
+            <div>
+              <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;color:#0F5C6B;margin-bottom:5px">RINGKASAN EKSEKUTIF</div>
+              <h1 style="margin:0;font-size:25px;font-weight:800;letter-spacing:-0.025em;color:#111827">Dashboard Eksekutif</h1>
+              <p style="margin:5px 0 0;font-size:13px;font-weight:600;color:#6B7280">Data per {{ hariIni }} · 4 proyek aktif · pembaruan terakhir 12 menit lalu</p>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button style="height:36px;padding:0 14px;border:1px solid #E5E7EB;background:#fff;border-radius:var(--radius-pill);font-size:12.5px;font-weight:700;color:#111827;cursor:pointer" style-hover="border-color:#0F5C6B">Ekspor ringkasan</button>
+              <button style="height:36px;padding:0 16px;border:0;background:#0F5C6B;border-radius:var(--radius-pill);font-size:12.5px;font-weight:700;color:#fff;cursor:pointer;box-shadow:var(--shadow-sm)" style-hover="transform:translateY(-1px);box-shadow:var(--shadow-md)">Rapat mingguan →</button>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:12px;margin-bottom:18px">
+            <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="6">
+              <div style="background:#fff;border:1px solid #E5E7EB;border-radius:10px;padding:14px 15px 13px;box-shadow:var(--shadow-xs)" style-hover="box-shadow:var(--shadow-md);transform:translateY(-2px)">
+                <div style="display:flex;align-items:center;gap:7px;margin-bottom:9px">
+                  <span style="width:6px;height:6px;border-radius:50%;background: {{ k.warna }}"></span>
+                  <span style="font-size:11px;font-weight:700;color:#6B7280;letter-spacing:-0.005em">{{ k.label }}</span>
+                </div>
+                <div style="font-size:26px;font-weight:800;letter-spacing:-0.035em;line-height:1;color: {{ k.warna }}">{{ k.nilai }}</div>
+                <div style="margin-top:8px;font-size:11px;font-weight:600;color:#9CA3AF">{{ k.sub }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));gap:14px;align-items:start">
+
+            <div style="background:#fff;border:1px solid #E5E7EB;border-radius:10px;overflow:hidden">
+              <div style="padding:14px 16px 12px;border-bottom:1px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between">
+                <div>
+                  <div style="font-size:14px;font-weight:800;letter-spacing:-0.02em">Matriks proyek × modul</div>
+                  <div style="font-size:11.5px;font-weight:600;color:#6B7280;margin-top:2px">Kesehatan tiap bagan per proyek. Klik sel untuk membuka modulnya.</div>
+                </div>
+                <div style="display:flex;gap:12px">
+                  <sc-for list="{{ legend }}" as="l" hint-placeholder-count="4">
+                    <span style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;color:#6B7280"><span style="width:7px;height:7px;border-radius:50%;background: {{ l.warna }}"></span>{{ l.label }}</span>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="padding:6px 16px 16px;overflow-x:auto">
+                <table style="width:100%;min-width:520px;border-collapse:collapse">
+                  <thead>
+                    <tr>
+                      <th style="text-align:left;font-size:10.5px;font-weight:700;letter-spacing:0.06em;color:#9CA3AF;padding:10px 8px 8px;width:34%">PROYEK</th>
+                      <sc-for list="{{ modulKolom }}" as="m" hint-placeholder-count="6">
+                        <th style="text-align:center;font-size:10.5px;font-weight:700;letter-spacing:0.03em;color:#9CA3AF;padding:10px 4px 8px">{{ m.pendek }}</th>
+                      </sc-for>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <sc-for list="{{ matriks }}" as="r" hint-placeholder-count="4">
+                      <tr style="border-top:1px solid #F1F3F5">
+                        <td style="padding:9px 8px">
+                          <div style="display:flex;align-items:center;gap:9px">
+                            <span style="width:7px;height:7px;border-radius:50%;flex:none;background: {{ r.warna }}"></span>
+                            <span style="min-width:0">
+                              <span style="display:block;font-size:12.5px;font-weight:700;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.nama }}</span>
+                              <span style="display:block;font-size:10.5px;font-weight:600;color:#9CA3AF">{{ r.meta }}</span>
+                            </span>
+                          </div>
+                        </td>
+                        <sc-for list="{{ r.sel }}" as="c" hint-placeholder-count="6">
+                          <td style="padding:9px 4px;text-align:center">
+                            <button onClick="{{ c.go }}" title="{{ c.tip }}" style="{{ c.style }}" style-hover="transform:scale(1.14)">{{ c.n }}</button>
+                          </td>
+                        </sc-for>
+                      </tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div style="background:#fff;border:1px solid #E5E7EB;border-radius:10px;overflow:hidden">
+              <div style="padding:14px 16px 12px;border-bottom:1px solid #E5E7EB">
+                <div style="font-size:14px;font-weight:800;letter-spacing:-0.02em">Kalender kepatuhan 90 hari</div>
+                <div style="font-size:11.5px;font-weight:600;color:#6B7280;margin-top:2px">Kepadatan tenggat per hari — {{ totalTenggat }} tenggat mendatang</div>
+              </div>
+              <div style="padding:14px 16px 16px;display:flex;flex-direction:column;gap:14px">
+                <sc-for list="{{ kalender }}" as="bl" hint-placeholder-count="3">
+                  <div>
+                    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:7px">
+                      <span style="font-size:11.5px;font-weight:800;letter-spacing:-0.01em">{{ bl.bulan }}</span>
+                      <span style="font-size:10.5px;font-weight:700;color:#9CA3AF">{{ bl.ringkas }}</span>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">
+                      <sc-for list="{{ bl.hari }}" as="d" hint-placeholder-count="31">
+                        <div title="{{ d.tip }}" style="{{ d.style }}">{{ d.n }}</div>
+                      </sc-for>
+                    </div>
+                  </div>
+                </sc-for>
+                <div style="display:flex;align-items:center;gap:10px;padding-top:10px;border-top:1px solid #F1F3F5">
+                  <span style="font-size:10.5px;font-weight:700;color:#9CA3AF">Sepi</span>
+                  <div style="display:flex;gap:3px;flex:1">
+                    <sc-for list="{{ skalaKalender }}" as="s" hint-placeholder-count="5">
+                      <span style="height:9px;flex:1;border-radius:3px;background: {{ s.warna }}"></span>
+                    </sc-for>
+                  </div>
+                  <span style="font-size:10.5px;font-weight:700;color:#9CA3AF">Padat</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:14px;background:#fff;border:1px solid #E5E7EB;border-radius:10px;overflow:hidden">
+            <div style="padding:14px 16px 12px;border-bottom:1px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between">
+              <div>
+                <div style="font-size:14px;font-weight:800;letter-spacing:-0.02em">Perlu perhatian Anda</div>
+                <div style="font-size:11.5px;font-weight:600;color:#6B7280;margin-top:2px">Item terlambat, diblokir, dan menunggu verifikasi lintas divisi</div>
+              </div>
+              <button onClick="{{ goProyek }}" style="height:32px;padding:0 13px;border:1px solid #E5E7EB;background:#fff;border-radius:var(--radius-pill);font-size:12px;font-weight:700;color:#111827;cursor:pointer" style-hover="border-color:#0F5C6B">Lihat semua item →</button>
+            </div>
+            <dc-import name="Harmoni Table" rows="{{ perhatian }}" cols="{{ colsRingkas }}" row-h="{{ rowH }}" sort-key="{{ sortKey }}" sort-dir="{{ sortDir }}" on-sort="{{ onSort }}" hint-size="100%,300px"></dc-import>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ============ DETAIL PROYEK ============ -->
+      <sc-if value="{{ isProyek }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <div style="background:#fff;border:1px solid #E5E7EB;border-radius:10px;padding:18px 20px 0;margin-bottom:14px">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding-bottom:16px">
+              <div style="min-width:0">
+                <div style="display:flex;align-items:center;gap:9px;margin-bottom:6px">
+                  <span style="font-size:11px;font-weight:700;letter-spacing:0.08em;color:#0F5C6B">DETAIL PROYEK</span>
+                  <span style="{{ faseChipStyle }}">{{ proyekAktif.fase }}</span>
+                </div>
+                <h1 style="margin:0;font-size:24px;font-weight:800;letter-spacing:-0.025em">{{ proyekAktif.nama }}</h1>
+                <div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:11px">
+                  <sc-for list="{{ proyekMetaChips }}" as="c" hint-placeholder-count="5">
+                    <span style="display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 11px;border-radius:var(--radius-pill);background:#F3F6F7;font-size:11.5px;font-weight:700;color:#374151">
+                      <span style="color:#9CA3AF;font-weight:700">{{ c.k }}</span>{{ c.v }}
+                    </span>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex;gap:24px;flex:none">
+                <sc-for list="{{ proyekStat }}" as="s" hint-placeholder-count="3">
+                  <div style="text-align:right">
+                    <div style="font-size:10.5px;font-weight:700;letter-spacing:0.05em;color:#9CA3AF;margin-bottom:5px">{{ s.label }}</div>
+                    <div style="font-size:21px;font-weight:800;letter-spacing:-0.03em;color: {{ s.warna }}">{{ s.v }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;gap:2px;overflow-x:auto;border-top:1px solid #F1F3F5">
+              <sc-for list="{{ modulTabs }}" as="t" hint-placeholder-count="7">
+                <button onClick="{{ t.go }}" style="{{ t.style }}" style-hover="color:#111827">
+                  <span>{{ t.label }}</span>
+                  <span style="{{ t.badgeStyle }}">{{ t.n }}</span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+
+          <sc-if value="{{ showBlocker }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:12px;align-items:flex-start;background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:13px 15px;margin-bottom:14px">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" stroke-linecap="round" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"></path><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path></svg>
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:800;color:#991B1B;margin-bottom:3px">Gerbang pemblokir aktif — {{ blockerJudul }}</div>
+                <div style="font-size:12.5px;font-weight:600;color:#B91C1C">{{ blockerPesan }}</div>
+              </div>
+              <button onClick="{{ blockerBuka }}" style="height:30px;padding:0 12px;border:1px solid #FCA5A5;background:#fff;border-radius:var(--radius-pill);font-size:11.5px;font-weight:700;color:#B91C1C;cursor:pointer;flex:none" style-hover="background:#FEE2E2">Lihat prasyarat</button>
+            </div>
+          </sc-if>
+
+          <div style="background:#fff;border:1px solid #E5E7EB;border-radius:10px;overflow:hidden">
+            <div style="padding:12px 16px;border-bottom:1px solid #E5E7EB;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <div style="display:flex;background:#F3F4F6;border-radius:8px;padding:3px;gap:2px">
+                <sc-for list="{{ horizonTabs }}" as="h" hint-placeholder-count="2">
+                  <button onClick="{{ h.go }}" style="{{ h.style }}">{{ h.label }}</button>
+                </sc-for>
+              </div>
+              <div style="width:1px;height:22px;background:#E5E7EB"></div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <sc-for list="{{ statusFilters }}" as="f" hint-placeholder-count="6">
+                  <button onClick="{{ f.go }}" style="{{ f.style }}">
+                    <span style="width:6px;height:6px;border-radius:50%;background: {{ f.warna }}"></span>{{ f.label }}
+                    <span style="font-weight:800;opacity:0.55">{{ f.n }}</span>
+                  </button>
+                </sc-for>
+              </div>
+              <div style="flex:1"></div>
+              <button onClick="{{ toggleDensity }}" title="Ubah kerapatan baris" style="height:30px;padding:0 12px;border:1px solid #E5E7EB;background:#fff;border-radius:var(--radius-pill);font-size:11.5px;font-weight:700;color:#6B7280;cursor:pointer" style-hover="border-color:#0F5C6B;color:#111827">{{ densityLabel }}</button>
+              <button style="height:30px;padding:0 12px;border:1px solid #E5E7EB;background:#fff;border-radius:var(--radius-pill);font-size:11.5px;font-weight:700;color:#6B7280;cursor:pointer" style-hover="border-color:#0F5C6B;color:#111827">Ekspor CSV</button>
+              <button onClick="{{ newItem }}" style="height:30px;padding:0 14px;border:0;background:#0F5C6B;border-radius:var(--radius-pill);font-size:11.5px;font-weight:700;color:#fff;cursor:pointer" style-hover="transform:translateY(-1px);box-shadow:var(--shadow-md)">+ Item baru</button>
+            </div>
+            <dc-import name="Harmoni Table" rows="{{ rows }}" cols="{{ cols }}" row-h="{{ rowH }}" sort-key="{{ sortKey }}" sort-dir="{{ sortDir }}" on-sort="{{ onSort }}" hint-size="100%,420px"></dc-import>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ============ LICENSE & DOCUMENTATION ============ -->
+      <sc-if value="{{ isLisensi }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:18px">
+            <div>
+              <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;color:#0F5C6B;margin-bottom:5px">BAGAN · LICENSE &amp; DOCUMENTATION</div>
+              <h1 style="margin:0;font-size:25px;font-weight:800;letter-spacing:-0.025em">Perizinan {{ proyekAktif.nama }}</h1>
+              <p style="margin:5px 0 0;font-size:13px;font-weight:600;color:#6B7280">PEMDA {{ proyekAktif.pemda }} · {{ pemdaSla }}</p>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button style="height:36px;padding:0 14px;border:1px solid #E5E7EB;background:#fff;border-radius:var(--radius-pill);font-size:12.5px;font-weight:700;cursor:pointer" style-hover="border-color:#0F5C6B">Bandingkan PEMDA</button>
+              <button onClick="{{ buatChecklist }}" style="height:36px;padding:0 16px;border:0;background:#0F5C6B;border-radius:var(--radius-pill);font-size:12.5px;font-weight:700;color:#fff;cursor:pointer;box-shadow:var(--shadow-sm)" style-hover="transform:translateY(-1px);box-shadow:var(--shadow-md)">Buat checklist perizinan</button>
+            </div>
+          </div>
+
+          <sc-if value="{{ checklistDibuat }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;gap:10px;background:#ECFDF5;border:1px solid #A7F3D0;border-radius:10px;padding:11px 15px;margin-bottom:14px">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+              <span style="font-size:12.5px;font-weight:700;color:#166534">Checklist 11 izin untuk PEMDA {{ proyekAktif.pemda }} dibuat. PIC &amp; verifikator terisi otomatis dari template divisi.</span>
+            </div>
+          </sc-if>
+
+          <div style="background:#fff;border:1px solid #E5E7EB;border-radius:10px;padding:16px 18px 20px;margin-bottom:14px">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:18px">
+              <div>
+                <div style="font-size:14px;font-weight:800;letter-spacing:-0.02em">Rantai ketergantungan izin</div>
+                <div style="font-size:11.5px;font-weight:600;color:#6B7280;margin-top:2px">Izin terkunci tidak dapat diajukan sebelum prasyaratnya selesai.</div>
+              </div>
+              <div style="display:flex;gap:7px">
+                <sc-for list="{{ hChips }}" as="c" hint-placeholder-count="4">
+                  <span style="{{ c.style }}">{{ c.label }}</span>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;align-items:flex-start;overflow-x:auto;padding-bottom:6px">
+              <sc-for list="{{ rantai }}" as="p" hint-placeholder-count="11">
+                <div style="display:flex;align-items:flex-start;flex:none">
+                  <button onClick="{{ p.go }}" title="{{ p.tip }}" style="{{ p.nodeStyle }}" style-hover="transform:translateY(-2px)">
+                    <span style="{{ p.dotStyle }}">
+                      <sc-if value="{{ p.locked }}" hint-placeholder-val="{{ false }}">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                      </sc-if>
+                      <sc-if value="{{ p.done }}" hint-placeholder-val="{{ false }}">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+                      </sc-if>
+                      <sc-if value="{{ p.plain }}" hint-placeholder-val="{{ true }}"><span>{{ p.no }}</span></sc-if>
+                    </span>
+                    <span style="{{ p.labelStyle }}">{{ p.nama }}</span>
+                    <span style="{{ p.subStyle }}">{{ p.sub }}</span>
+                  </button>
+                  <sc-if value="{{ p.showArrow }}" hint-placeholder-val="{{ true }}">
+                    <span style="{{ p.arrowStyle }}"></span>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="background:#fff;border:1px solid #E5E7EB;border-radius:10px;overflow:hidden">
+            <div style="padding:12px 16px;border-bottom:1px solid #E5E7EB;display:flex;align-items:center;gap:10px">
+              <div style="font-size:14px;font-weight:800;letter-spacing:-0.02em">Daftar izin</div>
+              <span style="font-size:11.5px;font-weight:700;color:#9CA3AF">{{ izinRingkas }}</span>
+              <div style="flex:1"></div>
+              <button onClick="{{ toggleDensity }}" style="height:30px;padding:0 12px;border:1px solid #E5E7EB;background:#fff;border-radius:var(--radius-pill);font-size:11.5px;font-weight:700;color:#6B7280;cursor:pointer" style-hover="border-color:#0F5C6B;color:#111827">{{ densityLabel }}</button>
+            </div>
+            <dc-import name="Harmoni Table" rows="{{ izinRows }}" cols="{{ colsIzin }}" row-h="{{ rowH }}" sort-key="{{ sortKey }}" sort-dir="{{ sortDir }}" on-sort="{{ onSort }}" hint-size="100%,420px"></dc-import>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ============ FEASIBILITY ============ -->
+      <sc-if value="{{ isFeas }}" hint-placeholder-val="{{ false }}">
+        <div>
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:18px">
+            <div>
+              <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;color:#0F5C6B;margin-bottom:5px">LINTAS FUNGSI · FEASIBILITY &amp; INITIAL COST</div>
+              <h1 style="margin:0;font-size:25px;font-weight:800;letter-spacing:-0.025em">Kelayakan {{ proyekAktif.nama }}</h1>
+              <p style="margin:5px 0 0;font-size:13px;font-weight:600;color:#6B7280">Baseline v3.2 · disetujui 14 Feb 2026 oleh Direktur Keuangan</p>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 14px;border-radius:var(--radius-pill);background:#D6FD91;font-size:12px;font-weight:800;color:#33501A">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                Baseline terkunci
+              </span>
+              <button style="height:36px;padding:0 14px;border:1px solid #E5E7EB;background:#fff;border-radius:var(--radius-pill);font-size:12.5px;font-weight:700;cursor:pointer" style-hover="border-color:#0F5C6B">Ajukan revisi baseline</button>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:12px;margin-bottom:14px">
+            <sc-for list="{{ feasKpis }}" as="k" hint-placeholder-count="6">
+              <div style="background:#fff;border:1px solid #E5E7EB;border-radius:10px;padding:14px 15px">
+                <div style="font-size:11px;font-weight:700;color:#6B7280;margin-bottom:9px">{{ k.label }}</div>
+                <div style="font-size:24px;font-weight:800;letter-spacing:-0.035em;line-height:1;color: {{ k.warna }}">{{ k.nilai }}</div>
+                <div style="margin-top:8px;font-size:11px;font-weight:600;color:#9CA3AF">{{ k.sub }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:14px;margin-bottom:14px;align-items:start">
+            <div style="background:#fff;border:1px solid #E5E7EB;border-radius:10px;padding:16px 18px">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px">
+                <div>
+                  <div style="font-size:14px;font-weight:800;letter-spacing:-0.02em">Kurva kas kumulatif</div>
+                  <div style="font-size:11.5px;font-weight:600;color:#6B7280;margin-top:2px">24 bulan · titik terdalam ditandai</div>
+                </div>
+                <div style="text-align:right">
+                  <div style="font-size:10.5px;font-weight:700;color:#9CA3AF">PEAK CASH</div>
+                  <div style="font-size:15px;font-weight:800;color:#DC2626;letter-spacing:-0.02em">−Rp 78,5 M</div>
+                </div>
+              </div>
+              {{ kurvaKas }}
+            </div>
+
+            <div style="background:#fff;border:1px solid #E5E7EB;border-radius:10px;overflow:hidden">
+              <div style="padding:15px 18px 12px">
+                <div style="font-size:14px;font-weight:800;letter-spacing:-0.02em">Sensitivitas</div>
+                <div style="font-size:11.5px;font-weight:600;color:#6B7280;margin-top:2px">Harga jual −8% / basis / +6%, biaya konstruksi ±5%</div>
+              </div>
+              <table style="width:100%;border-collapse:collapse">
+                <thead>
+                  <tr style="background:#FAFBFC;border-top:1px solid #E5E7EB;border-bottom:1px solid #E5E7EB">
+                    <th style="text-align:left;padding:9px 18px;font-size:10.5px;font-weight:700;letter-spacing:0.05em;color:#9CA3AF">SKENARIO</th>
+                    <th style="text-align:right;padding:9px 10px;font-size:10.5px;font-weight:700;letter-spacing:0.05em;color:#9CA3AF">NPV</th>
+                    <th style="text-align:right;padding:9px 10px;font-size:10.5px;font-weight:700;letter-spacing:0.05em;color:#9CA3AF">IRR</th>
+                    <th style="text-align:right;padding:9px 10px;font-size:10.5px;font-weight:700;letter-spacing:0.05em;color:#9CA3AF">PAYBACK</th>
+                    <th style="text-align:right;padding:9px 18px;font-size:10.5px;font-weight:700;letter-spacing:0.05em;color:#9CA3AF">MARGIN</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <sc-for list="{{ sensitivitas }}" as="s" hint-placeholder-count="3">
+                    <tr style="{{ s.rowStyle }}">
+                      <td style="padding:12px 18px;font-size:13px;font-weight:800;color: {{ s.warna }}">{{ s.nama }}</td>
+                      <td style="padding:12px 10px;text-align:right;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums">{{ s.npv }}</td>
+                      <td style="padding:12px 10px;text-align:right;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums">{{ s.irr }}</td>
+                      <td style="padding:12px 10px;text-align:right;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums">{{ s.payback }}</td>
+                      <td style="padding:12px 18px;text-align:right;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums">{{ s.margin }}</td>
+                    </tr>
+                  </sc-for>
+                </tbody>
+              </table>
+              <div style="padding:12px 18px;border-top:1px solid #F1F3F5;font-size:11.5px;font-weight:600;color:#6B7280">Ambang tolak: IRR &lt; 13% atau margin &lt; 15%. Skenario pesimis masih lolos.</div>
+            </div>
+          </div>
+
+          <div style="background:#fff;border:1px solid #E5E7EB;border-radius:10px;overflow:hidden">
+            <div style="padding:14px 18px 12px;border-bottom:1px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between">
+              <div>
+                <div style="font-size:14px;font-weight:800;letter-spacing:-0.02em">Initial cost — 11 tahap</div>
+                <div style="font-size:11.5px;font-weight:600;color:#6B7280;margin-top:2px">Rencana Rp 96,2 M · realisasi Rp 88,7 M · deviasi −Rp 7,5 M (−7,8%)</div>
+              </div>
+              <div style="display:flex;gap:16px">
+                <sc-for list="{{ tahapLegend }}" as="l" hint-placeholder-count="2">
+                  <span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#6B7280"><span style="width:10px;height:10px;border-radius:3px;background: {{ l.warna }}"></span>{{ l.label }}</span>
+                </sc-for>
+              </div>
+            </div>
+            <table style="width:100%;border-collapse:collapse">
+              <thead>
+                <tr style="background:#FAFBFC;border-bottom:1px solid #E5E7EB">
+                  <th style="text-align:left;padding:9px 18px;font-size:10.5px;font-weight:700;letter-spacing:0.05em;color:#9CA3AF">TAHAP</th>
+                  <th style="text-align:right;padding:9px 12px;font-size:10.5px;font-weight:700;letter-spacing:0.05em;color:#9CA3AF">RENCANA</th>
+                  <th style="text-align:right;padding:9px 12px;font-size:10.5px;font-weight:700;letter-spacing:0.05em;color:#9CA3AF">REALISASI</th>
+                  <th style="text-align:right;padding:9px 12px;font-size:10.5px;font-weight:700;letter-spacing:0.05em;color:#9CA3AF">DEVIASI RP</th>
+                  <th style="text-align:right;padding:9px 12px;font-size:10.5px;font-weight:700;letter-spacing:0.05em;color:#9CA3AF">DEVIASI %</th>
+                  <th style="text-align:left;padding:9px 18px 9px 24px;font-size:10.5px;font-weight:700;letter-spacing:0.05em;color:#9CA3AF;width:190px">% TERSERAP</th>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{ tahapan }}" as="t" hint-placeholder-count="11">
+                  <tr style="border-bottom:1px solid #F1F3F5" style-hover="background:#FAFBFC">
+                    <td style="padding:0 18px;height:38px;font-size:13px;font-weight:700;color:#111827">
+                      <span style="display:inline-flex;align-items:center;gap:9px"><span style="font-size:11px;font-weight:700;color:#C6CBD3;font-variant-numeric:tabular-nums">{{ t.no }}</span>{{ t.nama }}</span>
+                    </td>
+                    <td style="padding:0 12px;text-align:right;font-size:13px;font-weight:600;color:#374151;font-variant-numeric:tabular-nums">{{ t.rencana }}</td>
+                    <td style="padding:0 12px;text-align:right;font-size:13px;font-weight:700;color:#111827;font-variant-numeric:tabular-nums">{{ t.realisasi }}</td>
+                    <td style="padding:0 12px;text-align:right;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color: {{ t.warna }}">{{ t.devRp }}</td>
+                    <td style="padding:0 12px;text-align:right;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color: {{ t.warna }}">{{ t.devPc }}</td>
+                    <td style="padding:0 18px 0 24px">
+                      <span style="display:flex;align-items:center;gap:10px">
+                        <span style="flex:1;height:6px;border-radius:var(--radius-pill);background:#EEF0F3;overflow:hidden;display:block">
+                          <span style="{{ t.barStyle }}"></span>
+                        </span>
+                        <span style="font-size:12px;font-weight:700;color:#6B7280;font-variant-numeric:tabular-nums;width:42px;text-align:right">{{ t.terserap }}</span>
+                      </span>
+                    </td>
+                  </tr>
+                </sc-for>
+              </tbody>
+              <tfoot>
+                <tr style="background:#FAFBFC;border-top:1px solid #E5E7EB">
+                  <td style="padding:0 18px;height:42px;font-size:13px;font-weight:800">Total</td>
+                  <td style="padding:0 12px;text-align:right;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums">96.200</td>
+                  <td style="padding:0 12px;text-align:right;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums">88.700</td>
+                  <td style="padding:0 12px;text-align:right;font-size:13px;font-weight:800;color:#16A34A;font-variant-numeric:tabular-nums">−7.500</td>
+                  <td style="padding:0 12px;text-align:right;font-size:13px;font-weight:800;color:#16A34A;font-variant-numeric:tabular-nums">−7,8%</td>
+                  <td style="padding:0 18px 0 24px;font-size:11.5px;font-weight:600;color:#6B7280">Nilai dalam Rp juta</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ============ EMPTY ============ -->
+      <sc-if value="{{ isKosong }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:110px 20px;text-align:center">
+          <div style="width:56px;height:56px;border-radius:16px;background:#EEF2F4;display:flex;align-items:center;justify-content:center;margin-bottom:16px">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0F5C6B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18M3 12h18M3 17h10"></path></svg>
+          </div>
+          <div style="font-size:17px;font-weight:800;letter-spacing:-0.02em;margin-bottom:6px">{{ kosongJudul }}</div>
+          <div style="font-size:13px;font-weight:600;color:#6B7280;max-width:420px;text-wrap:pretty">Modul ini masuk gelombang P2. Struktur tabel dan alur verifikasinya identik dengan modul lain, jadi tidak ada komponen baru yang perlu dirancang.</div>
+          <button onClick="{{ goDashboard }}" style="margin-top:18px;height:36px;padding:0 16px;border:1px solid #E5E7EB;background:#fff;border-radius:var(--radius-pill);font-size:12.5px;font-weight:700;cursor:pointer" style-hover="border-color:#0F5C6B">Kembali ke dashboard</button>
+        </div>
+      </sc-if>
+
+    </div>
+  </main>
+</div>
+
+<!-- ============ ITEM DRAWER ============ -->
+<sc-if value="{{ drawerOpen }}" hint-placeholder-val="{{ false }}">
+  <div>
+    <div onClick="{{ closeDrawer }}" style="position:fixed;inset:0;background:rgba(17,24,39,0.28);backdrop-filter:blur(2px);z-index:60"></div>
+    <aside style="position:fixed;top:0;right:0;bottom:0;width:480px;background:#fff;border-left:1px solid #E5E7EB;box-shadow:var(--shadow-lg);z-index:61;display:flex;flex-direction:column;animation:hcDrawerIn 320ms cubic-bezier(0.22,1,0.36,1)">
+
+      <div style="flex:none;padding:16px 20px 14px;border-bottom:1px solid #E5E7EB">
+        <div style="display:flex;align-items:flex-start;gap:12px">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span style="font-size:10.5px;font-weight:700;letter-spacing:0.07em;color:#0F5C6B">{{ d.modulLabel }}</span>
+              <span style="font-size:10.5px;font-weight:700;color:#D1D5DB">·</span>
+              <span style="font-size:10.5px;font-weight:700;color:#9CA3AF">{{ d.kode }}</span>
+            </div>
+            <h2 style="margin:0;font-size:17px;font-weight:800;letter-spacing:-0.02em;text-wrap:balance">{{ d.judul }}</h2>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:9px">
+              <span style="{{ d.statusStyle }}">{{ d.status }}</span>
+              <span style="{{ d.tenggatStyle }}">{{ d.tenggatTxt }}</span>
+              <span style="{{ d.risikoStyle }}">Risiko {{ d.risiko }}</span>
+            </div>
+          </div>
+          <button onClick="{{ closeDrawer }}" style="width:30px;height:30px;flex:none;border:1px solid #E5E7EB;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="border-color:#0F5C6B">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+          </button>
+        </div>
+      </div>
+
+      <div style="flex:1;overflow-y:auto">
+
+        <sc-if value="{{ d.blocked }}" hint-placeholder-val="{{ false }}">
+          <div style="margin:16px 20px 0;display:flex;gap:11px;align-items:flex-start;background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:12px 14px">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" stroke-linecap="round" style="flex:none;margin-top:1px"><path d="M12 9v4M12 17h.01"></path><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path></svg>
+            <div>
+              <div style="font-size:12.5px;font-weight:800;color:#991B1B;margin-bottom:3px">Diblokir oleh gerbang prasyarat</div>
+              <div style="font-size:12px;font-weight:600;color:#B91C1C;text-wrap:pretty">{{ d.blockReason }}</div>
+            </div>
+          </div>
+        </sc-if>
+
+        <div style="padding:18px 20px 0">
+          <div style="font-size:10.5px;font-weight:700;letter-spacing:0.07em;color:#9CA3AF;margin-bottom:12px">ALUR VERIFIKASI</div>
+          <div style="display:flex;align-items:flex-start">
+            <sc-for list="{{ d.steps }}" as="s" hint-placeholder-count="5">
+              <div style="display:flex;align-items:flex-start;flex:1;min-width:0">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:7px;width:100%;min-width:0">
+                  <span style="{{ s.dotStyle }}">{{ s.mark }}</span>
+                  <span style="{{ s.labelStyle }}">{{ s.label }}</span>
+                </div>
+                <sc-if value="{{ s.showLine }}" hint-placeholder-val="{{ true }}">
+                  <span style="{{ s.lineStyle }}"></span>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <sc-for list="{{ d.fields }}" as="f" hint-placeholder-count="8">
+            <div style="{{ f.wrapStyle }}">
+              <div style="font-size:10.5px;font-weight:700;letter-spacing:0.05em;color:#9CA3AF;margin-bottom:6px">{{ f.label }}</div>
+              <div style="{{ f.valStyle }}">{{ f.v }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="padding:0 20px 20px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div style="font-size:10.5px;font-weight:700;letter-spacing:0.07em;color:#9CA3AF">LAMPIRAN BUKTI</div>
+            <button style="height:26px;padding:0 10px;border:1px solid #E5E7EB;background:#fff;border-radius:var(--radius-pill);font-size:11px;font-weight:700;color:#0F5C6B;cursor:pointer" style-hover="border-color:#0F5C6B">+ Unggah</button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <sc-for list="{{ d.lampiran }}" as="l" hint-placeholder-count="2">
+              <div style="display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid #E5E7EB;border-radius:9px" style-hover="border-color:#0F5C6B;background:#FAFCFC">
+                <span style="{{ l.tagStyle }}">{{ l.ext }}</span>
+                <span style="flex:1;min-width:0">
+                  <span style="display:block;font-size:12.5px;font-weight:700;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ l.nama }}</span>
+                  <span style="display:block;font-size:10.5px;font-weight:600;color:#9CA3AF">{{ l.meta }}</span>
+                </span>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg>
+              </div>
+            </sc-for>
+            <sc-if value="{{ d.noLampiran }}" hint-placeholder-val="{{ false }}">
+              <div style="padding:16px;border:1px dashed #D9DEE5;border-radius:9px;text-align:center;font-size:12px;font-weight:600;color:#9CA3AF">Belum ada bukti. Verifikator tidak dapat menyetujui tanpa lampiran.</div>
+            </sc-if>
+          </div>
+        </div>
+
+        <div style="padding:0 20px 20px">
+          <div style="font-size:10.5px;font-weight:700;letter-spacing:0.07em;color:#9CA3AF;margin-bottom:10px">KETERGANTUNGAN</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <sc-for list="{{ d.deps }}" as="dp" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:9px;padding:8px 11px;background:#F7F8FA;border-radius:8px">
+                <span style="width:7px;height:7px;border-radius:50%;flex:none;background: {{ dp.warna }}"></span>
+                <span style="flex:1;font-size:12.5px;font-weight:700;color:#111827">{{ dp.nama }}</span>
+                <span style="font-size:11px;font-weight:700;color: {{ dp.warna }}">{{ dp.status }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="padding:0 20px 20px">
+          <div style="font-size:10.5px;font-weight:700;letter-spacing:0.07em;color:#9CA3AF;margin-bottom:10px">KOMENTAR &amp; JEJAK AUDIT</div>
+          <div style="display:flex;flex-direction:column;gap:0">
+            <sc-for list="{{ d.audit }}" as="a" hint-placeholder-count="4">
+              <div style="display:flex;gap:11px">
+                <div style="display:flex;flex-direction:column;align-items:center;flex:none;width:26px">
+                  <span style="{{ a.dotStyle }}"></span>
+                  <sc-if value="{{ a.showLine }}" hint-placeholder-val="{{ true }}"><span style="flex:1;width:1px;background:#E5E7EB;min-height:14px"></span></sc-if>
+                </div>
+                <div style="flex:1;padding-bottom:16px">
+                  <div style="display:flex;align-items:baseline;gap:7px;margin-bottom:2px">
+                    <span style="font-size:12.5px;font-weight:800;color:#111827">{{ a.aktor }}</span>
+                    <span style="font-size:10.5px;font-weight:600;color:#9CA3AF">{{ a.waktu }}</span>
+                  </div>
+                  <div style="font-size:12.5px;font-weight:600;color:#374151;text-wrap:pretty">{{ a.teks }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:2px">
+            <input placeholder="Tulis komentar untuk verifikator…" style="flex:1;height:36px;padding:0 12px;border:1px solid #E5E7EB;border-radius:9px;outline:0;font-family:inherit;font-size:12.5px;font-weight:600;color:#111827" style-focus="border-color:#0F5C6B">
+            <button style="height:36px;padding:0 14px;border:1px solid #E5E7EB;background:#fff;border-radius:9px;font-size:12px;font-weight:700;color:#0F5C6B;cursor:pointer" style-hover="border-color:#0F5C6B">Kirim</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex:none;padding:13px 20px;border-top:1px solid #E5E7EB;background:#FCFDFD;display:flex;align-items:center;gap:8px">
+        <button style="{{ d.simpanStyle }}">Simpan</button>
+        <button style="{{ d.ajukanStyle }}">{{ d.ajukanLabel }}</button>
+        <div style="flex:1"></div>
+        <button style="height:36px;padding:0 14px;border:1px solid #E5E7EB;background:#fff;border-radius:var(--radius-pill);font-size:12.5px;font-weight:700;color:#B91C1C;cursor:pointer" style-hover="background:#FEF2F2;border-color:#FCA5A5">Kembalikan</button>
+      </div>
+    </aside>
+  </div>
+</sc-if>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1560,&quot;height&quot;:980},&quot;kerapatan&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;rapat&quot;,&quot;options&quot;:[&quot;rapat&quot;,&quot;longgar&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Tabel&quot;},&quot;gayaMatriks&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;Angka&quot;,&quot;options&quot;:[&quot;Angka&quot;,&quot;Titik&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Dashboard&quot;},&quot;gerbangIzin&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:4,&quot;min&quot;:1,&quot;max&quot;:11,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Perizinan&quot;}}">
+const A = '#0F5C6B';
+const C = { done:'#16A34A', run:'#2563EB', due:'#F59E0B', late:'#DC2626', idle:'#9CA3AF', verif:'#0F5C6B' };
+const BL = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+const TODAY = new Date(2026, 7, 6);
+
+const PROYEK = [
+  { id:'srp', nama:'Harmoni Serpong Fase 2', lok:'Tangerang Selatan', ha:'8,4 Ha', unit:320, fase:'Perizinan', warna:C.done, pemda:'Tangerang Selatan', sla:'KKPR terbit 1×24 jam · PEMDA tercepat dari 4 wilayah' },
+  { id:'bgt', nama:'Harmoni Bogor Timur', lok:'Kab. Bogor', ha:'15,2 Ha', unit:540, fase:'Akuisisi', warna:C.due, pemda:'Kab. Bogor', sla:'PKKPR 3+14 hari kerja' },
+  { id:'rsb', nama:'Harmoni Residence Bogor', lok:'Kota Bogor', ha:'4,1 Ha', unit:180, fase:'Konstruksi', warna:C.done, pemda:'Kota Bogor', sla:'PKKPR 2+10 hari kerja' },
+  { id:'ckp', nama:'Harmoni Cikupa', lok:'Kab. Tangerang', ha:'22,7 Ha', unit:760, fase:'Pra-Akuisisi', warna:C.late, pemda:'Kab. Tangerang', sla:'PKKPR 5+20 hari kerja · PEMDA terlambat' }
+];
+
+const MODUL = [
+  { id:'corporate', label:'Corporate', pendek:'Corp' },
+  { id:'commercial', label:'Commercial', pendek:'Comm' },
+  { id:'land', label:'Land Acquisition', pendek:'Land' },
+  { id:'license', label:'License & Doc', pendek:'Izin' },
+  { id:'social', label:'Social & Litigation', pendek:'Sosial' },
+  { id:'feasibility', label:'Feasibility', pendek:'Feas' },
+  { id:'finance', label:'Finance & Corr.', pendek:'Fin' }
+];
+
+const ST = {
+  'Belum Dimulai': C.idle, 'Berjalan': C.run, 'Menunggu Pihak Ketiga': C.due,
+  'Menunggu Verifikasi': C.verif, 'Selesai': C.done, 'Diblokir': C.late, 'Dibatalkan': C.idle
+};
+const STEPS = ['Belum Dimulai','Berjalan','Menunggu Pihak Ketiga','Menunggu Verifikasi','Selesai'];
+
+function it(judul, modul, proyek, horizon, status, pic, verif, tgl, nilai, risiko, dok, blockReason) {
+  return { judul, modul, proyek, horizon, status, pic, verif, tgl, nilai, risiko, dok, blockReason: blockReason || null };
+}
+
+const ITEMS = [
+  it('Perpanjangan akta perubahan direksi','corporate','srp','Pendek','Selesai','Lestari Wijaya','Rani Puspita','2026-07-18',0,'Rendah',3),
+  it('RUPS tahunan & pengesahan laporan 2025','corporate','srp','Panjang','Berjalan','Lestari Wijaya','Dimas Aryo','2026-09-30',0,'Sedang',2),
+  it('Pembaruan NIB & KBLI tambahan PSU','corporate','srp','Pendek','Menunggu Pihak Ketiga','Nurul Aisyah','Rani Puspita','2026-08-14',0,'Sedang',1),
+  it('Audit kepatuhan struktur kepemilikan','corporate','bgt','Panjang','Belum Dimulai','Lestari Wijaya','Dimas Aryo','2026-11-20',0,'Rendah',0),
+
+  it('SPK kontraktor utama paket infrastruktur','commercial','srp','Pendek','Diblokir','Bagas Prasetyo','Yudha Firmansyah','2026-08-12',18400000000,'Tinggi',2,'SPK memerlukan Siteplan dan PBG berstatus Selesai. Saat ini PBG masih terkunci — prasyarat Siteplan belum disetujui PEMDA.'),
+  it('Termin 3 kontraktor pematangan lahan','commercial','srp','Pendek','Menunggu Verifikasi','Bagas Prasetyo','Sinta Mahardika','2026-08-09',4250000000,'Sedang',4),
+  it('PPJB batch 1 — 48 unit cluster Anggrek','commercial','srp','Pendek','Diblokir','Sinta Mahardika','Rani Puspita','2026-08-25',0,'Tinggi',1,'PPJB memerlukan keterbangunan 20%, PBG terbit, dan tanah atas nama PT. Dua dari tiga prasyarat belum terpenuhi.'),
+  it('Adendum kontrak konsultan MK','commercial','rsb','Pendek','Berjalan','Bagas Prasetyo','Yudha Firmansyah','2026-08-28',1150000000,'Rendah',2),
+  it('Kerangka kerja sama pemasaran agen','commercial','bgt','Panjang','Belum Dimulai','Sinta Mahardika','Dimas Aryo','2026-12-05',0,'Rendah',0),
+
+  it('Pelunasan bidang 14–22 (blok C)','land','bgt','Pendek','Diblokir','Yudha Firmansyah','Nurul Aisyah','2026-08-11',12750000000,'Tinggi',3,'Pelunasan tanah memerlukan due diligence bersih. Bidang 19 dan 21 masih terdaftar sengketa waris di catatan desa.'),
+  it('Due diligence 31 bidang tahap 2','land','bgt','Pendek','Berjalan','Yudha Firmansyah','Rani Puspita','2026-08-21',0,'Tinggi',7),
+  it('Balik nama SHM → SHGB atas nama PT','land','srp','Panjang','Menunggu Pihak Ketiga','Yudha Firmansyah','Lestari Wijaya','2026-10-15',0,'Sedang',5),
+  it('Pengukuran ulang BPN bidang sisa','land','ckp','Pendek','Terlambat-run','Dimas Aryo','Yudha Firmansyah','2026-07-24',0,'Tinggi',1),
+  it('Negosiasi harga 9 bidang enclave','land','ckp','Panjang','Belum Dimulai','Dimas Aryo','Sinta Mahardika','2027-01-30',8900000000,'Tinggi',0),
+
+  it('Persetujuan Lingkungan (UKL-UPL)','license','srp','Pendek','Menunggu Verifikasi','Rani Puspita','Nurul Aisyah','2026-08-19',0,'Sedang',6),
+  it('Andalalin — kajian lalu lintas','license','srp','Pendek','Menunggu Pihak Ketiga','Rani Puspita','Bagas Prasetyo','2026-09-04',0,'Sedang',3),
+  it('Rekomendasi Peil Banjir','license','srp','Pendek','Belum Dimulai','Nurul Aisyah','Rani Puspita','2026-09-25',0,'Sedang',0),
+  it('Siteplan definitif 320 unit','license','srp','Pendek','Berjalan','Rani Puspita','Bagas Prasetyo','2026-08-16',0,'Tinggi',4),
+  it('PBG tahap 1 — 96 unit','license','srp','Panjang','Belum Dimulai','Rani Puspita','Yudha Firmansyah','2026-11-12',0,'Tinggi',0),
+  it('PKKPR Cikupa 22,7 Ha','license','ckp','Pendek','Terlambat-run','Nurul Aisyah','Rani Puspita','2026-07-15',0,'Tinggi',2),
+  it('SLF blok A–D Residence Bogor','license','rsb','Pendek','Menunggu Verifikasi','Nurul Aisyah','Dimas Aryo','2026-08-13',0,'Sedang',5),
+
+  it('Sosialisasi warga RW 04 & RW 07','social','ckp','Pendek','Berjalan','Dimas Aryo','Sinta Mahardika','2026-08-18',0,'Tinggi',3),
+  it('Perkara No. 214/Pdt.G — batas bidang 07','social','bgt','Panjang','Menunggu Pihak Ketiga','Sinta Mahardika','Lestari Wijaya','2026-10-08',0,'Tinggi',9),
+  it('Mediasi klaim akses jalan warga','social','srp','Pendek','Selesai','Dimas Aryo','Sinta Mahardika','2026-07-29',0,'Sedang',4),
+  it('Perkara No. 88/Pdt.G — kompensasi tanam tumbuh','social','ckp','Panjang','Berjalan','Sinta Mahardika','Lestari Wijaya','2026-12-18',0,'Tinggi',6),
+
+  it('Revisi baseline initial cost v3.2','feasibility','srp','Pendek','Selesai','Bagas Prasetyo','Lestari Wijaya','2026-07-11',0,'Sedang',3),
+  it('Rekonsiliasi realisasi tahap 7–9','feasibility','srp','Pendek','Menunggu Verifikasi','Bagas Prasetyo','Nurul Aisyah','2026-08-15',0,'Sedang',2),
+  it('Studi kelayakan awal Cikupa','feasibility','ckp','Panjang','Berjalan','Bagas Prasetyo','Lestari Wijaya','2026-10-30',0,'Tinggi',1),
+
+  it('Proyeksi kas 13 minggu — pembaruan','finance','srp','Pendek','Berjalan','Lestari Wijaya','Bagas Prasetyo','2026-08-10',0,'Sedang',2),
+  it('Surat menyurat bank — fasilitas KYG','finance','bgt','Pendek','Menunggu Pihak Ketiga','Lestari Wijaya','Rani Puspita','2026-08-27',0,'Sedang',3),
+  it('Rekonsiliasi escrow PPJB batch 1','finance','rsb','Pendek','Menunggu Verifikasi','Lestari Wijaya','Dimas Aryo','2026-08-08',0,'Tinggi',4)
+];
+
+const PERMITS = [
+  ['LSD','Lokasi Sawah Dilindungi','—','Selesai','2026-03-04'],
+  ['KKPR','Kesesuaian Kegiatan Pemanfaatan Ruang','LSD','Selesai','2026-03-27'],
+  ['PTP','Persetujuan Teknis Pertanahan','KKPR','Selesai','2026-05-12'],
+  ['Lingkungan','Persetujuan Lingkungan (UKL-UPL)','PTP','Menunggu Verifikasi','2026-08-19'],
+  ['Andalalin','Analisis Dampak Lalu Lintas','Lingkungan','Menunggu Pihak Ketiga','2026-09-04'],
+  ['Peil Banjir','Rekomendasi Peil Banjir','Lingkungan','Belum Dimulai','2026-09-25'],
+  ['KRK','Keterangan Rencana Kota','Andalalin','Belum Dimulai','2026-10-06'],
+  ['Siteplan','Pengesahan Siteplan','KRK','Berjalan','2026-08-16'],
+  ['PBG','Persetujuan Bangunan Gedung','Siteplan','Belum Dimulai','2026-11-12'],
+  ['SLF','Sertifikat Laik Fungsi','PBG','Belum Dimulai','2027-04-20'],
+  ['PSU','Serah terima PSU','SLF','Belum Dimulai','2027-09-30']
+];
+
+const TAHAP = [
+  ['Studi kelayakan & riset pasar',3500,3410],
+  ['Perizinan dasar (LSD–PTP)',7800,7250],
+  ['Akuisisi lahan',42000,41600],
+  ['Sertifikasi & balik nama',4200,3980],
+  ['Perizinan konstruksi',5600,5100],
+  ['Desain & perencanaan',6100,5850],
+  ['Land clearing & cut-fill',3800,2900],
+  ['Infrastruktur utama',9400,8600],
+  ['Konstruksi unit tahap 1',5200,4300],
+  ['PSU & serah terima',4900,3200],
+  ['Legalitas konsumen',3700,2510]
+];
+
+const KAS = [0,-6200,-14800,-24500,-33100,-41600,-49200,-56800,-62400,-67900,-71800,-74900,-76800,-77900,-78500,-74100,-63200,-48600,-31200,-12400,7800,26400,41200,52600,60800];
+
+const ICON = {
+  dashboard:'M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z',
+  proyek:'M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z',
+  corporate:'M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2M10 7h4M10 11h4M10 15h4',
+  commercial:'M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M8 17h6M8 13h3',
+  land:'M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15',
+  license:'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M9 15l2 2 4-4',
+  social:'M12 3v18M5 7h14M5 7l-3 7a4 4 0 0 0 6 0zM19 7l3 7a4 4 0 0 0-6 0z',
+  feasibility:'M3 17l6-6 4 4 8-8M17 7h4v4',
+  finance:'M3 8a2 2 0 0 1 2-2h13v3M3 8v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2H5a2 2 0 0 1-2-2M17 14h.01',
+  audit:'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zM9 12l2 2 4-4',
+  pengaturan:'M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M10 15v6'
+};
+
+function fmtTgl(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  return String(d.getDate()).padStart(2,'0') + ' ' + BL[d.getMonth()] + ' ' + d.getFullYear();
+}
+function hari(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  return Math.round((d - TODAY) / 86400000);
+}
+function rp(n) {
+  if (!n) return '—';
+  return 'Rp ' + n.toLocaleString('id-ID');
+}
+function rpM(n) {
+  return 'Rp ' + (n / 1000000000).toLocaleString('id-ID', { maximumFractionDigits: 1 }) + ' M';
+}
+function num(n) { return n.toLocaleString('id-ID'); }
+function inisial(nama) { return nama.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase(); }
+
+class Component extends DCLogic {
+  state = {
+    screen: 'dashboard', nav: 'dashboard', proyek: 'srp', modul: 'license',
+    horizon: 'Pendek', filter: 'Semua', q: '', sortKey: 'tgl', sortDir: 'asc',
+    open: false, collapsed: false, projectMenu: false, drawer: null,
+    density: 'rapat', checklist: false
+  };
+
+  set = (o) => this.setState(o);
+
+  // ---- derived helpers ----
+  efektifStatus(i) {
+    if (i.status === 'Terlambat-run') return 'Berjalan';
+    return i.status;
+  }
+  deadlineMeta(i) {
+    const st = this.efektifStatus(i);
+    const h = hari(i.tgl);
+    if (st === 'Selesai') return { txt: fmtTgl(i.tgl), warna: C.done, chip: 'Selesai' };
+    if (h < 0) return { txt: fmtTgl(i.tgl), warna: C.late, chip: 'Terlambat ' + Math.abs(h) + " hr" };
+    if (h <= 7) return { txt: fmtTgl(i.tgl), warna: C.late, chip: 'H-' + h };
+    if (h <= 30) return { txt: fmtTgl(i.tgl), warna: C.due, chip: 'H-' + h };
+    return { txt: fmtTgl(i.tgl), warna: '#6B7280', chip: 'H-' + h };
+  }
+  isLate(i) {
+    const st = this.efektifStatus(i);
+    return st !== 'Selesai' && st !== 'Dibatalkan' && hari(i.tgl) < 0;
+  }
+
+  buildRow(i, idx) {
+    const st = this.efektifStatus(i);
+    const dm = this.deadlineMeta(i);
+    const warna = ST[st] || C.idle;
+    const kode = (i.modul.slice(0,3).toUpperCase()) + '-' + String(idx + 101);
+    const risikoWarna = i.risiko === 'Tinggi' ? C.late : i.risiko === 'Sedang' ? C.due : C.idle;
+    const mod = MODUL.find(m => m.id === i.modul);
+    const pr = PROYEK.find(p => p.id === i.proyek);
+    return {
+      key: kode, kode, judul: i.judul, modul: i.modul, modulLabel: mod ? mod.label : i.modul,
+      proyek: i.proyek, proyekNama: pr ? pr.nama : '', horizon: i.horizon,
+      status: st, statusWarna: warna,
+      statusStyle: 'display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px 0 7px;border-radius:var(--radius-pill);font-size:11px;font-weight:700;white-space:nowrap;color:' + warna + ';background:' + warna + '14',
+      dotStyle: 'width:6px;height:6px;border-radius:50%;flex:none;background:' + warna,
+      pic: i.pic, picInit: inisial(i.pic), verif: i.verif, verifInit: inisial(i.verif),
+      tgl: i.tgl, tglTxt: dm.txt, chip: dm.chip, chipWarna: dm.warna,
+      chipStyle: 'display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:var(--radius-pill);font-size:10.5px;font-weight:800;white-space:nowrap;color:' + dm.warna + ';background:' + dm.warna + '16',
+      nilai: i.nilai, nilaiTxt: i.nilai ? rp(i.nilai) : '—',
+      risiko: i.risiko, risikoWarna,
+      risikoStyle: 'display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:6px;font-size:10.5px;font-weight:700;color:' + risikoWarna + ';background:' + risikoWarna + '14',
+      dok: i.dok, blocked: st === 'Diblokir', blockReason: i.blockReason,
+      open: () => this.set({ drawer: { i, idx } })
+    };
+  }
+
+  allRows() { return ITEMS.map((i, n) => this.buildRow(i, n)); }
+
+  sorted(rows) {
+    const k = this.state.sortKey, dir = this.state.sortDir === 'asc' ? 1 : -1;
+    const c = rows.slice();
+    c.sort((a, b) => {
+      let x = a[k], y = b[k];
+      if (typeof x === 'number' && typeof y === 'number') return (x - y) * dir;
+      return String(x).localeCompare(String(y), 'id') * dir;
+    });
+    return c;
+  }
+
+  filtered() {
+    const s = this.state;
+    let r = this.allRows().filter(x => x.proyek === s.proyek && x.modul === s.modul && x.horizon === s.horizon);
+    if (s.filter === 'Terlambat') r = r.filter(x => x.chip.indexOf('Terlambat') === 0);
+    else if (s.filter !== 'Semua') r = r.filter(x => x.status === s.filter);
+    if (s.q.trim()) {
+      const q = s.q.toLowerCase();
+      r = r.filter(x => (x.judul + x.pic + x.verif + x.kode).toLowerCase().indexOf(q) >= 0);
+    }
+    return this.sorted(r);
+  }
+
+  cols(which) {
+    const base = [
+      { k:'judul', label:'JUDUL', type:'title', w:'auto', align:'left' },
+      { k:'status', label:'STATUS', type:'status', w:'168px', align:'left' },
+      { k:'pic', label:'PIC', type:'person', w:'150px', align:'left' },
+      { k:'verif', label:'VERIFIKATOR', type:'person', w:'150px', align:'left' },
+      { k:'tgl', label:'TARGET', type:'date', w:'205px', align:'left' },
+      { k:'nilai', label:'NILAI', type:'money', w:'150px', align:'right' },
+      { k:'risiko', label:'RISIKO', type:'risk', w:'90px', align:'left' },
+      { k:'dok', label:'DOK', type:'doc', w:'64px', align:'right' }
+    ];
+    if (which === 'ringkas') return [
+      { k:'judul', label:'JUDUL', type:'title', w:'auto', align:'left' },
+      { k:'proyekNama', label:'PROYEK', type:'text', w:'210px', align:'left' },
+      { k:'status', label:'STATUS', type:'status', w:'168px', align:'left' },
+      { k:'pic', label:'PIC', type:'person', w:'150px', align:'left' },
+      { k:'tgl', label:'TARGET', type:'date', w:'205px', align:'left' },
+      { k:'risiko', label:'RISIKO', type:'risk', w:'90px', align:'left' }
+    ];
+    if (which === 'izin') return [
+      { k:'judul', label:'IZIN', type:'title', w:'auto', align:'left' },
+      { k:'prasyarat', label:'PRASYARAT', type:'text', w:'150px', align:'left' },
+      { k:'status', label:'STATUS', type:'status', w:'168px', align:'left' },
+      { k:'pic', label:'PIC', type:'person', w:'150px', align:'left' },
+      { k:'verif', label:'VERIFIKATOR', type:'person', w:'150px', align:'left' },
+      { k:'tgl', label:'TARGET', type:'date', w:'205px', align:'left' },
+      { k:'dok', label:'DOK', type:'doc', w:'64px', align:'right' }
+    ];
+    return base;
+  }
+
+  izinRows() {
+    const pics = ['Rani Puspita','Nurul Aisyah','Rani Puspita','Rani Puspita','Rani Puspita','Nurul Aisyah','Nurul Aisyah','Rani Puspita','Rani Puspita','Nurul Aisyah','Dimas Aryo'];
+    const vers = ['Yudha Firmansyah','Yudha Firmansyah','Yudha Firmansyah','Nurul Aisyah','Bagas Prasetyo','Rani Puspita','Rani Puspita','Bagas Prasetyo','Yudha Firmansyah','Dimas Aryo','Sinta Mahardika'];
+    const rows = PERMITS.map((p, n) => {
+      const r = this.buildRow({
+        judul: p[0] + ' — ' + p[1], modul:'license', proyek: this.state.proyek, horizon:'Pendek',
+        status: p[3], pic: pics[n], verif: vers[n], tgl: p[4], nilai: 0,
+        risiko: n >= 7 ? 'Tinggi' : 'Sedang', dok: [4,6,3,6,3,0,0,4,0,0,0][n]
+      }, 900 + n);
+      r.prasyarat = p[2];
+      r.locked = this.lockedIndex() < n;
+      if (r.locked) {
+        r.status = 'Terkunci';
+        r.statusWarna = C.idle;
+        r.statusStyle = 'display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px 0 7px;border-radius:var(--radius-pill);font-size:11px;font-weight:700;color:#6B7280;background:#EFF1F4';
+        r.dotStyle = 'width:6px;height:6px;border-radius:50%;flex:none;background:' + C.idle;
+      }
+      return r;
+    });
+    return this.sorted(rows);
+  }
+
+  lockedIndex() {
+    let last = 0;
+    for (let n = 0; n < PERMITS.length; n++) {
+      if (PERMITS[n][3] === 'Selesai') last = n;
+    }
+    return last + (this.props.gerbangIzin ?? 4);
+  }
+
+  kurva() {
+    const W = 560, H = 210, pad = { l: 8, r: 8, t: 14, b: 26 };
+    const min = Math.min.apply(null, KAS), max = Math.max.apply(null, KAS);
+    const iw = W - pad.l - pad.r, ih = H - pad.t - pad.b;
+    const x = n => pad.l + (n / (KAS.length - 1)) * iw;
+    const y = v => pad.t + (max - v) / (max - min) * ih;
+    const pts = KAS.map((v, n) => x(n) + ',' + y(v)).join(' ');
+    const area = 'M' + x(0) + ',' + y(0) + ' L' + pts.split(' ').join(' L') + ' L' + x(KAS.length - 1) + ',' + y(0) + ' Z';
+    const dip = KAS.indexOf(min);
+    const e = React.createElement;
+    return e('svg', { viewBox: '0 0 ' + W + ' ' + H, style: { width: '100%', height: 'auto', display: 'block', marginTop: 10 } }, [
+      e('defs', { key: 'd' }, e('linearGradient', { id: 'hcArea', x1: 0, y1: 0, x2: 0, y2: 1 }, [
+        e('stop', { key: 0, offset: '0%', stopColor: A, stopOpacity: 0.16 }),
+        e('stop', { key: 1, offset: '100%', stopColor: A, stopOpacity: 0.01 })
+      ])),
+      e('path', { key: 'a', d: area, fill: 'url(#hcArea)' }),
+      e('line', { key: 'z', x1: pad.l, x2: W - pad.r, y1: y(0), y2: y(0), stroke: '#D9DEE5', strokeWidth: 1, strokeDasharray: '3 4' }),
+      e('polyline', { key: 'p', points: pts, fill: 'none', stroke: A, strokeWidth: 2.4, strokeLinejoin: 'round', strokeLinecap: 'round' }),
+      e('line', { key: 'dl', x1: x(dip), x2: x(dip), y1: y(min), y2: y(0), stroke: C.late, strokeWidth: 1, strokeDasharray: '2 3' }),
+      e('circle', { key: 'dc', cx: x(dip), cy: y(min), r: 5, fill: '#fff', stroke: C.late, strokeWidth: 2.6 }),
+      e('text', { key: 'dt', x: x(dip) + 10, y: y(min) + 4, fill: C.late, fontSize: 11, fontWeight: 800 }, 'Bulan 14 · −Rp 78,5 M'),
+      e('circle', { key: 'ec', cx: x(KAS.length - 1), cy: y(max), r: 4, fill: C.done }),
+      e('text', { key: 'et', x: W - pad.r, y: y(max) - 8, textAnchor: 'end', fill: C.done, fontSize: 11, fontWeight: 800 }, '+Rp 60,8 M'),
+      e('g', { key: 'ax' }, [0, 6, 12, 18, 24].map(n =>
+        e('text', { key: n, x: x(n), y: H - 6, textAnchor: n === 0 ? 'start' : n === 24 ? 'end' : 'middle', fill: '#9CA3AF', fontSize: 10, fontWeight: 700 }, 'B' + n)
+      ))
+    ]);
+  }
+
+  renderVals() {
+    const s = this.state;
+    const P = PROYEK.find(p => p.id === s.proyek) || PROYEK[0];
+    const dens = this.props.kerapatan ?? s.density;
+    const rowH = dens === 'rapat' ? 38 : 46;
+    const matrixTitik = (this.props.gayaMatriks ?? 'Angka') === 'Titik';
+    const all = this.allRows();
+    const rows = this.filtered();
+
+    const navDef = [
+      { g: '', label: '', items: [['dashboard','Dashboard','dashboard'],['proyek','Proyek','proyek']] },
+      { g: '5 BAGAN', label: '5 BAGAN', items: [['corporate','Corporate','corporate'],['commercial','Commercial','commercial'],['land','Land Acquisition','land'],['license','License & Doc','license'],['social','Social & Litigation','social']] },
+      { g: 'LINTAS FUNGSI', label: 'LINTAS FUNGSI', items: [['feasibility','Feasibility & Initial Cost','feasibility'],['finance','Finance & Correspondence','finance'],['audit','Internal Audit','audit']] },
+      { g: 'SISTEM', label: 'SISTEM', items: [['pengaturan','Pengaturan','pengaturan']] }
+    ];
+
+    const counts = {};
+    all.forEach(r => { if (r.status === 'Diblokir' || r.chip.indexOf('Terlambat') === 0) counts[r.modul] = (counts[r.modul] || 0) + 1; });
+
+    const navGroups = navDef.map(g => ({
+      label: g.label, showLabel: !!g.label && !s.collapsed,
+      items: g.items.map(([id, label, icon]) => {
+        const active = s.nav === id;
+        const n = counts[id] || 0;
+        return {
+          label, icon: ICON[icon], showCount: n > 0 && !s.collapsed, count: n,
+          countStyle: 'min-width:19px;height:18px;padding:0 5px;border-radius:var(--radius-pill);background:' + (active ? 'rgba(255,255,255,0.22)' : '#FEE2E2') + ';color:' + (active ? '#fff' : '#B91C1C') + ';font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none',
+          style: 'width:100%;display:flex;align-items:center;gap:11px;height:34px;padding:0 10px;margin-bottom:1px;border:0;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12.5px;font-weight:' + (active ? '700' : '600') + ';background:' + (active ? A : 'transparent') + ';color:' + (active ? '#fff' : '#6B7280') + ';transition:background 160ms',
+          go: () => this.goNav(id)
+        };
+      })
+    }));
+
+    const modulTabs = MODUL.map(m => {
+      const active = s.modul === m.id;
+      const n = all.filter(r => r.proyek === s.proyek && r.modul === m.id).length;
+      return {
+        label: m.label, n,
+        style: 'display:flex;align-items:center;gap:7px;height:42px;padding:0 14px;border:0;background:transparent;border-bottom:2px solid ' + (active ? A : 'transparent') + ';color:' + (active ? '#111827' : '#6B7280') + ';font-family:inherit;font-size:12.5px;font-weight:' + (active ? '800' : '600') + ';cursor:pointer;white-space:nowrap',
+        badgeStyle: 'min-width:19px;height:18px;padding:0 5px;border-radius:6px;background:' + (active ? '#E3EFF1' : '#F3F4F6') + ';color:' + (active ? A : '#9CA3AF') + ';font-size:10.5px;font-weight:800;display:flex;align-items:center;justify-content:center',
+        go: () => this.set({ modul: m.id, nav: MODUL.map(x => x.id).indexOf(m.id) >= 0 && ['corporate','commercial','land','license','social'].indexOf(m.id) >= 0 ? m.id : s.nav, filter: 'Semua' })
+      };
+    });
+
+    const scoped = all.filter(r => r.proyek === s.proyek && r.modul === s.modul);
+    const filterDefs = [
+      ['Semua', '#9CA3AF', scoped.length],
+      ['Berjalan', C.run, scoped.filter(r => r.status === 'Berjalan').length],
+      ['Menunggu Verifikasi', C.verif, scoped.filter(r => r.status === 'Menunggu Verifikasi').length],
+      ['Menunggu Pihak Ketiga', C.due, scoped.filter(r => r.status === 'Menunggu Pihak Ketiga').length],
+      ['Diblokir', C.late, scoped.filter(r => r.status === 'Diblokir').length],
+      ['Terlambat', C.late, scoped.filter(r => r.chip.indexOf('Terlambat') === 0).length]
+    ];
+    const statusFilters = filterDefs.map(([label, warna, n]) => {
+      const active = s.filter === label;
+      return {
+        label, warna, n,
+        style: 'display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:var(--radius-pill);cursor:pointer;font-family:inherit;font-size:11.5px;font-weight:700;border:1px solid ' + (active ? A : '#E5E7EB') + ';background:' + (active ? '#F0F6F7' : '#fff') + ';color:' + (active ? A : '#6B7280'),
+        go: () => this.set({ filter: label })
+      };
+    });
+
+    // dashboard
+    const terlambat = all.filter(r => r.chip.indexOf('Terlambat') === 0).length;
+    const tenggat30 = all.filter(r => r.status !== 'Selesai' && hari(r.tgl) >= 0 && hari(r.tgl) <= 30).length;
+    const kpis = [
+      { label: 'Tenggat ≤ 30 hari', nilai: String(tenggat30), sub: 'Tersebar di 4 proyek', warna: C.due },
+      { label: 'Item terlambat', nilai: String(terlambat), sub: '3 di antaranya risiko tinggi', warna: C.late },
+      { label: 'Proyek aktif', nilai: '4', sub: '50,4 Ha · 1.800 unit', warna: '#111827' },
+      { label: 'Kas 13 minggu', nilai: 'Rp 24,6 M', sub: 'Cukup sampai minggu ke-11', warna: C.run },
+      { label: 'Deviasi initial cost', nilai: '−7,8%', sub: 'Di bawah rencana — sehat', warna: C.done },
+      { label: 'Perkara aktif', nilai: '3', sub: '2 mediasi · 1 gugatan perdata', warna: C.late }
+    ];
+
+    const modulKolom = MODUL.slice(0, 6);
+    const matriks = PROYEK.map(p => ({
+      nama: p.nama, warna: p.warna, meta: p.lok + ' · ' + p.ha + ' · ' + p.unit + ' unit',
+      sel: modulKolom.map(m => {
+        const set = all.filter(r => r.proyek === p.id && r.modul === m.id);
+        const bad = set.filter(r => r.status === 'Diblokir' || r.chip.indexOf('Terlambat') === 0).length;
+        const warn = set.filter(r => r.chip.indexOf('H-') === 0 && parseInt(r.chip.slice(2), 10) <= 30).length;
+        let warna = C.idle, label = 'belum ada item';
+        if (set.length === 0) warna = '#E5E7EB';
+        else if (bad > 0) { warna = C.late; label = bad + ' item bermasalah'; }
+        else if (warn > 0) { warna = C.due; label = warn + ' tenggat dekat'; }
+        else { warna = C.done; label = 'aman'; }
+        return {
+          n: matrixTitik ? '' : (set.length || ''),
+          tip: p.nama + ' · ' + m.label + ' — ' + label,
+          style: matrixTitik
+            ? 'width:13px;height:13px;border-radius:50%;border:0;padding:0;cursor:pointer;background:' + (set.length ? warna : '#E5E7EB') + ';transition:transform 160ms'
+            : 'width:30px;height:30px;border-radius:9px;border:0;cursor:pointer;font-family:inherit;font-size:11px;font-weight:800;color:' + (set.length ? '#fff' : '#C6CBD3') + ';background:' + (set.length ? warna : '#F1F3F5') + ';transition:transform 160ms',
+          go: () => this.set({ screen: m.id === 'license' ? 'lisensi' : m.id === 'feasibility' ? 'feasibility' : 'proyek', nav: m.id, proyek: p.id, modul: m.id, filter: 'Semua' })
+        };
+      })
+    }));
+
+    const bulanBlok = [[7, 2026], [8, 2026], [9, 2026]];
+    const perDay = {};
+    all.forEach(r => { perDay[r.tgl] = (perDay[r.tgl] || 0) + 1; });
+    const skala = ['#EFF1F4', '#CFE3E6', '#9FC8CE', '#5EA3AE', A];
+    const kalender = bulanBlok.map(([m, y]) => {
+      const dim = new Date(y, m + 1, 0).getDate();
+      const first = new Date(y, m, 1).getDay();
+      const off = (first + 6) % 7;
+      const hariArr = [];
+      for (let k = 0; k < off; k++) hariArr.push({ n: '', style: 'height:20px', tip: '' });
+      let tot = 0;
+      for (let dn = 1; dn <= dim; dn++) {
+        const iso = y + '-' + String(m + 1).padStart(2, '0') + '-' + String(dn).padStart(2, '0');
+        const c = perDay[iso] || 0;
+        tot += c;
+        const isToday = y === 2026 && m === 7 && dn === 6;
+        const bg = c === 0 ? '#F7F8FA' : skala[Math.min(4, c)];
+        hariArr.push({
+          n: String(dn), tip: fmtTgl(iso) + ' — ' + c + ' tenggat',
+          style: 'height:20px;display:flex;align-items:center;justify-content:center;border-radius:5px;font-size:9.5px;font-weight:700;background:' + bg + ';color:' + (c >= 2 ? '#fff' : '#9CA3AF') + (isToday ? ';outline:2px solid ' + C.late + ';outline-offset:-2px;color:' + C.late : '')
+        });
+      }
+      return { bulan: BL[m] + ' ' + y, ringkas: tot + ' tenggat', hari: hariArr };
+    });
+
+    const perhatian = this.sorted(all.filter(r => r.status === 'Diblokir' || r.chip.indexOf('Terlambat') === 0 || r.status === 'Menunggu Verifikasi')).slice(0, 8);
+
+    // feasibility
+    const tahapan = TAHAP.map((t, n) => {
+      const dev = t[2] - t[1];
+      const pc = dev / t[1] * 100;
+      const ters = t[2] / t[1] * 100;
+      const warna = dev <= 0 ? C.done : C.late;
+      return {
+        no: String(n + 1).padStart(2, '0'), nama: t[0],
+        rencana: num(t[1]), realisasi: num(t[2]),
+        devRp: (dev > 0 ? '+' : '−') + num(Math.abs(dev)),
+        devPc: (pc > 0 ? '+' : '−') + Math.abs(pc).toFixed(1).replace('.', ',') + '%',
+        warna, terserap: ters.toFixed(0) + '%',
+        barStyle: 'display:block;height:100%;border-radius:var(--radius-pill);width:' + Math.min(100, ters) + '%;background:' + (ters > 100 ? C.late : ters >= 85 ? A : '#8FC0C8')
+      };
+    });
+
+    const feasKpis = [
+      { label: 'NPV', nilai: 'Rp 42,8 M', sub: 'Diskonto 12% · 24 bulan', warna: '#111827' },
+      { label: 'IRR', nilai: '18,4%', sub: 'Ambang minimum 13%', warna: C.done },
+      { label: 'Payback', nilai: '3,2 th', sub: 'Target maksimum 4 th', warna: '#111827' },
+      { label: 'Margin', nilai: '22,1%', sub: 'Ambang minimum 15%', warna: C.done },
+      { label: 'BEP', nilai: '187 unit', sub: '58% dari 320 unit', warna: '#111827' },
+      { label: 'Peak cash', nilai: 'Rp 78,5 M', sub: 'Bulan ke-14', warna: C.late }
+    ];
+
+    const sensitivitas = [
+      { nama: 'Pesimis', npv: 'Rp 18,3 M', irr: '13,9%', payback: '4,1 th', margin: '15,6%', warna: C.due, rowStyle: 'border-bottom:1px solid #F1F3F5' },
+      { nama: 'Basis', npv: 'Rp 42,8 M', irr: '18,4%', payback: '3,2 th', margin: '22,1%', warna: A, rowStyle: 'border-bottom:1px solid #F1F3F5;background:#F5FAFA' },
+      { nama: 'Optimis', npv: 'Rp 61,5 M', irr: '22,7%', payback: '2,7 th', margin: '26,8%', warna: C.done, rowStyle: '' }
+    ];
+
+    // rantai izin
+    const li = this.lockedIndex();
+    const rantai = PERMITS.map((p, n) => {
+      const locked = li < n;
+      const st = locked ? 'Terkunci' : p[3];
+      const warna = locked ? C.idle : (ST[st] || C.idle);
+      const done = st === 'Selesai';
+      const h = hari(p[4]);
+      return {
+        nama: p[0], no: String(n + 1), sub: done ? fmtTgl(p[4]) : locked ? 'Terkunci' : (h < 0 ? 'Terlambat ' + Math.abs(h) + ' hr' : 'H-' + h),
+        locked, done, plain: !locked && !done, tip: p[1] + ' — ' + st + (p[2] !== '—' ? ' · prasyarat: ' + p[2] : ''),
+        nodeStyle: 'display:flex;flex-direction:column;align-items:center;gap:7px;width:96px;padding:8px 4px;border:0;background:transparent;cursor:pointer;font-family:inherit;transition:transform 180ms;opacity:' + (locked ? '0.62' : '1'),
+        dotStyle: 'width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:' + (done ? '#fff' : locked ? '#6B7280' : warna) + ';background:' + (done ? C.done : locked ? '#EFF1F4' : warna + '1A') + ';border:1.5px solid ' + (done ? C.done : locked ? '#E0E3E8' : warna + '55'),
+        labelStyle: 'font-size:11.5px;font-weight:800;letter-spacing:-0.01em;color:' + (locked ? '#9CA3AF' : '#111827') + ';text-align:center;line-height:1.25',
+        subStyle: 'font-size:10px;font-weight:700;color:' + (locked ? '#B6BBC3' : warna),
+        showArrow: n < PERMITS.length - 1,
+        arrowStyle: 'display:block;width:18px;height:2px;border-radius:2px;margin-top:24px;background:' + (li < n + 1 ? '#E5E7EB' : '#CBD5D8'),
+        go: () => this.set({ screen: 'lisensi' })
+      };
+    });
+
+    const hChips = [180, 90, 30, 7].map(h => {
+      const warna = h <= 7 ? C.late : h <= 30 ? C.due : h <= 90 ? C.run : '#9CA3AF';
+      const n = PERMITS.filter(p => { const d = hari(p[4]); return d >= 0 && d <= h; }).length;
+      return { label: 'H-' + h + ' · ' + n, style: 'display:inline-flex;align-items:center;height:26px;padding:0 11px;border-radius:var(--radius-pill);font-size:11px;font-weight:800;color:' + warna + ';background:' + warna + '14' };
+    });
+
+    // drawer
+    let d = null;
+    if (s.drawer) {
+      const r = this.buildRow(s.drawer.i, s.drawer.idx);
+      const cur = Math.max(0, STEPS.indexOf(r.status));
+      const isBlocked = r.blocked;
+      d = {
+        judul: r.judul, kode: r.kode, modulLabel: r.modulLabel, status: r.status, risiko: r.risiko,
+        blocked: isBlocked, blockReason: r.blockReason || '',
+        statusStyle: r.statusStyle, risikoStyle: r.risikoStyle,
+        tenggatTxt: r.chip + ' · ' + r.tglTxt, tenggatStyle: r.chipStyle,
+        steps: STEPS.map((label, n) => {
+          const st = isBlocked ? (n <= 1 ? 'done' : 'todo') : n < cur ? 'done' : n === cur ? 'now' : 'todo';
+          const warna = st === 'done' ? C.done : st === 'now' ? A : '#D5D9E0';
+          return {
+            label, mark: st === 'done' ? '✓' : String(n + 1),
+            dotStyle: 'width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex:none;color:' + (st === 'todo' ? '#9CA3AF' : '#fff') + ';background:' + (st === 'todo' ? '#EFF1F4' : warna) + (st === 'now' ? ';box-shadow:0 0 0 4px ' + A + '1F' : ''),
+            labelStyle: 'font-size:9.5px;font-weight:700;text-align:center;line-height:1.25;color:' + (st === 'todo' ? '#B6BBC3' : st === 'now' ? A : '#6B7280'),
+            showLine: n < STEPS.length - 1,
+            lineStyle: 'display:block;height:2px;flex:none;width:14px;margin-top:11px;border-radius:2px;background:' + (n < cur && !isBlocked ? C.done : '#E5E7EB')
+          };
+        }),
+        fields: [
+          { label: 'PROYEK', v: r.proyekNama, wide: true },
+          { label: 'MODUL', v: r.modulLabel },
+          { label: 'HORIZON', v: 'Jangka ' + r.horizon },
+          { label: 'PIC', v: r.pic },
+          { label: 'VERIFIKATOR', v: r.verif },
+          { label: 'TARGET', v: r.tglTxt },
+          { label: 'KEDALUWARSA', v: r.status === 'Selesai' ? '—' : fmtTgl(r.tgl) },
+          { label: 'NILAI', v: r.nilaiTxt, wide: true }
+        ].map(f => ({
+          label: f.label, v: f.v,
+          wrapStyle: f.wide ? 'grid-column:1 / -1' : '',
+          valStyle: 'min-height:36px;display:flex;align-items:center;padding:0 11px;border:1px solid #E5E7EB;border-radius:9px;background:#FCFDFD;font-size:12.5px;font-weight:700;color:#111827'
+        })),
+        lampiran: (r.dok > 0 ? [
+          { nama: 'Berita acara ' + r.kode + '.pdf', meta: '1,8 MB · diunggah ' + r.pic + ' · 02 Agu 2026', ext: 'PDF', warna: C.late },
+          { nama: 'Lampiran teknis & lampiran ukur.xlsx', meta: '640 KB · diunggah ' + r.pic + ' · 29 Jul 2026', ext: 'XLS', warna: C.done },
+          { nama: 'Surat pengantar divisi.docx', meta: '212 KB · diunggah ' + r.pic + ' · 27 Jul 2026', ext: 'DOC', warna: C.run }
+        ].slice(0, Math.min(3, r.dok)) : []).map(l => ({
+          nama: l.nama, meta: l.meta, ext: l.ext,
+          tagStyle: 'width:34px;height:34px;flex:none;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:800;color:' + l.warna + ';background:' + l.warna + '14'
+        })),
+        noLampiran: r.dok === 0,
+        deps: (isBlocked ? [
+          { nama: 'Siteplan definitif 320 unit', status: 'Berjalan', warna: C.run },
+          { nama: 'PBG tahap 1 — 96 unit', status: 'Terkunci', warna: C.idle },
+          { nama: 'Balik nama SHM → SHGB', status: 'Menunggu Pihak Ketiga', warna: C.due }
+        ] : [
+          { nama: 'Persetujuan Lingkungan (UKL-UPL)', status: 'Menunggu Verifikasi', warna: C.verif },
+          { nama: 'PTP — Persetujuan Teknis Pertanahan', status: 'Selesai', warna: C.done }
+        ]),
+        audit: [
+          { aktor: r.pic, waktu: '04 Agu 2026 · 14:22', teks: 'Bukti dokumen tahap 2 diunggah. Mohon verifikasi sebelum tenggat.', warna: A },
+          { aktor: r.verif, waktu: '03 Agu 2026 · 09:41', teks: 'Dikembalikan — lampiran ukur belum ditandatangani surveyor.', warna: C.late },
+          { aktor: r.pic, waktu: '01 Agu 2026 · 16:08', teks: 'Status diubah dari Belum Dimulai ke Berjalan.', warna: C.run },
+          { aktor: 'Sistem', waktu: '28 Jul 2026 · 08:00', teks: 'Item dibuat otomatis dari template checklist divisi.', warna: '#9CA3AF' }
+        ].map((a, n, arr) => ({
+          aktor: a.aktor, waktu: a.waktu, teks: a.teks, showLine: n < arr.length - 1,
+          dotStyle: 'width:9px;height:9px;border-radius:50%;margin-top:5px;flex:none;background:' + a.warna
+        })),
+        simpanStyle: 'height:36px;padding:0 16px;border:0;border-radius:var(--radius-pill);font-family:inherit;font-size:12.5px;font-weight:700;' + (isBlocked
+          ? 'background:#EFF1F4;color:#B6BBC3;cursor:not-allowed'
+          : 'background:#fff;border:1px solid #E5E7EB;color:#111827;cursor:pointer'),
+        ajukanStyle: 'height:36px;padding:0 16px;border:0;border-radius:var(--radius-pill);font-family:inherit;font-size:12.5px;font-weight:700;' + (isBlocked
+          ? 'background:#EFF1F4;color:#B6BBC3;cursor:not-allowed'
+          : 'background:' + A + ';color:#fff;cursor:pointer;box-shadow:var(--shadow-sm)'),
+        ajukanLabel: r.status === 'Menunggu Verifikasi' ? 'Setujui & tutup' : 'Ajukan verifikasi'
+      };
+    }
+
+    const blockedScoped = scoped.filter(r => r.blocked);
+    const blocker = blockedScoped[0];
+
+    return {
+      // shell
+      sidebarOpen: !s.collapsed,
+      sidebarStyle: 'width:' + (s.collapsed ? 64 : 240) + 'px;flex:none;background:#fff;border-right:1px solid #E5E7EB;display:flex;flex-direction:column;transition:width 220ms cubic-bezier(0.22,1,0.36,1)',
+      toggleSidebar: () => this.set({ collapsed: !s.collapsed }),
+      navGroups,
+      proyekAktif: P,
+      proyekList: PROYEK.map(p => ({
+        nama: p.nama, warna: p.warna, fase: p.fase, meta: p.lok + ' · ' + p.ha + ' · ' + p.unit + ' unit',
+        menuStyle: 'width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;border:0;border-radius:9px;cursor:pointer;font-family:inherit;background:' + (p.id === s.proyek ? '#F0F6F7' : 'transparent'),
+        pick: () => this.set({ proyek: p.id, projectMenu: false })
+      })),
+      projectMenuOpen: s.projectMenu,
+      toggleProjectMenu: () => this.set({ projectMenu: !s.projectMenu }),
+      query: s.q,
+      onQuery: (e) => this.set({ q: e.target.value }),
+      hariIni: '06 Agu 2026',
+
+      // screens
+      isDashboard: s.screen === 'dashboard',
+      isProyek: s.screen === 'proyek',
+      isLisensi: s.screen === 'lisensi',
+      isFeas: s.screen === 'feasibility',
+      isKosong: s.screen === 'kosong',
+      kosongJudul: s.nav === 'finance' ? 'Finance & Correspondence' : s.nav === 'audit' ? 'Internal Audit' : 'Pengaturan',
+      goDashboard: () => this.goNav('dashboard'),
+      goProyek: () => this.goNav('proyek'),
+
+      // dashboard
+      kpis,
+      legend: [
+        { label: 'Aman', warna: C.done }, { label: 'Tenggat dekat', warna: C.due },
+        { label: 'Bermasalah', warna: C.late }, { label: 'Kosong', warna: '#E5E7EB' }
+      ],
+      modulKolom, matriks, kalender,
+      skalaKalender: skala.map(w => ({ warna: w })),
+      totalTenggat: all.filter(r => hari(r.tgl) >= 0 && hari(r.tgl) <= 90).length,
+      perhatian, colsRingkas: this.cols('ringkas'),
+
+      // proyek
+      faseChipStyle: 'display:inline-flex;align-items:center;height:22px;padding:0 10px;border-radius:var(--radius-pill);font-size:11px;font-weight:800;color:' + P.warna + ';background:' + P.warna + '16',
+      proyekMetaChips: [
+        { k: 'Lokasi', v: P.lok }, { k: 'Luas', v: P.ha }, { k: 'Unit', v: P.unit + ' unit' },
+        { k: 'PEMDA', v: P.pemda }, { k: 'Kadiv', v: 'Rani Puspita' }
+      ],
+      proyekStat: [
+        { label: 'ITEM AKTIF', v: String(all.filter(r => r.proyek === s.proyek && r.status !== 'Selesai').length), warna: '#111827' },
+        { label: 'TERLAMBAT', v: String(all.filter(r => r.proyek === s.proyek && r.chip.indexOf('Terlambat') === 0).length), warna: C.late },
+        { label: 'DIBLOKIR', v: String(all.filter(r => r.proyek === s.proyek && r.blocked).length), warna: C.late }
+      ],
+      modulTabs,
+      horizonTabs: ['Pendek', 'Panjang'].map(h => ({
+        label: 'Jangka ' + h,
+        style: 'height:26px;padding:0 13px;border:0;border-radius:6px;cursor:pointer;font-family:inherit;font-size:11.5px;font-weight:700;background:' + (s.horizon === h ? '#fff' : 'transparent') + ';color:' + (s.horizon === h ? '#111827' : '#6B7280') + (s.horizon === h ? ';box-shadow:var(--shadow-xs)' : ''),
+        go: () => this.set({ horizon: h })
+      })),
+      statusFilters,
+      showBlocker: !!blocker,
+      blockerJudul: blocker ? blocker.judul : '',
+      blockerPesan: blocker ? blocker.blockReason : '',
+      blockerBuka: () => { if (blocker) blocker.open(); },
+      rows, cols: this.cols(), rowH,
+      densityLabel: s.density === 'rapat' ? 'Rapat' : 'Longgar',
+      toggleDensity: () => this.set({ density: s.density === 'rapat' ? 'longgar' : 'rapat' }),
+      newItem: () => this.set({ drawer: { i: ITEMS[15], idx: 15 } }),
+      sortKey: s.sortKey, sortDir: s.sortDir,
+      onSort: (k) => this.set({ sortKey: k, sortDir: s.sortKey === k && s.sortDir === 'asc' ? 'desc' : 'asc' }),
+
+      // lisensi
+      pemdaSla: P.sla,
+      checklistDibuat: s.checklist,
+      buatChecklist: () => this.set({ checklist: true }),
+      rantai, hChips,
+      izinRows: this.izinRows(), colsIzin: this.cols('izin'),
+      izinRingkas: PERMITS.filter(p => p[3] === 'Selesai').length + ' selesai · ' + (PERMITS.length - li - 1) + ' terkunci · 11 total',
+
+      // feasibility
+      feasKpis, tahapan, sensitivitas, kurvaKas: this.kurva(),
+      tahapLegend: [{ label: 'Sesuai/di bawah rencana', warna: A }, { label: 'Melebihi rencana', warna: C.late }],
+
+      // drawer
+      drawerOpen: !!d, d: d || {},
+      closeDrawer: () => this.set({ drawer: null })
+    };
+  }
+
+  goNav(id) {
+    const bagan = ['corporate', 'commercial', 'land', 'social'];
+    if (id === 'dashboard') this.set({ screen: 'dashboard', nav: id });
+    else if (id === 'proyek') this.set({ screen: 'proyek', nav: id, modul: 'corporate', filter: 'Semua' });
+    else if (id === 'license') this.set({ screen: 'lisensi', nav: id, modul: 'license' });
+    else if (id === 'feasibility') this.set({ screen: 'feasibility', nav: id, modul: 'feasibility' });
+    else if (bagan.indexOf(id) >= 0) this.set({ screen: 'proyek', nav: id, modul: id, filter: 'Semua' });
+    else this.set({ screen: 'kosong', nav: id });
+  }
+}
+
+</script>
+</body>
+</html>
