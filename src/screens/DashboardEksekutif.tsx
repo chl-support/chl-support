@@ -1,5 +1,5 @@
 import { C } from '@/data/constants'
-import type { ModuleId, ProjectId } from '@/data/types'
+import type { ModuleId, Project, ProjectId } from '@/data/types'
 import { ComplianceCalendar } from '@/components/ComplianceCalendar'
 import { DataTable } from '@/components/DataTable'
 import { KpiCard, type Kpi } from '@/components/KpiCard'
@@ -11,6 +11,7 @@ import { isTerlambat, sortRows, type Row, type SortDir } from '@/lib/rows'
 
 interface DashboardProps {
   all: Row[]
+  projects: Project[]
   hariIni: string
   rowH: number
   sortKey: string
@@ -24,6 +25,7 @@ interface DashboardProps {
 
 export function DashboardEksekutif({
   all,
+  projects,
   hariIni,
   rowH,
   sortKey,
@@ -42,7 +44,12 @@ export function DashboardEksekutif({
   const kpis: Kpi[] = [
     { label: 'Tenggat ≤ 30 hari', nilai: String(tenggat30), sub: 'Tersebar di 4 proyek', warna: C.due },
     { label: 'Item terlambat', nilai: String(terlambat), sub: '3 di antaranya risiko tinggi', warna: C.late },
-    { label: 'Proyek aktif', nilai: '4', sub: '50,4 Ha · 1.800 unit', warna: '#111827' },
+    {
+      label: 'Proyek aktif',
+      nilai: String(projects.length),
+      sub: projects.length ? `${projects.reduce((s, p) => s + (p.unit || 0), 0)} unit total` : 'belum ada proyek',
+      warna: '#111827',
+    },
     { label: 'Kas 13 minggu', nilai: 'Rp 24,6 M', sub: 'Cukup sampai minggu ke-11', warna: C.run },
     { label: 'Deviasi initial cost', nilai: '−7,8%', sub: 'Di bawah rencana — sehat', warna: C.done },
     { label: 'Perkara aktif', nilai: '3', sub: '2 mediasi · 1 gugatan perdata', warna: C.late },
@@ -83,7 +90,7 @@ export function DashboardEksekutif({
             Dashboard Eksekutif
           </h1>
           <p style={{ margin: '5px 0 0', fontSize: 13, fontWeight: 600, color: '#6B7280' }}>
-            Data per {hariIni} · 4 proyek aktif · pembaruan terakhir 12 menit lalu
+            Data per {hariIni} · {projects.length} proyek aktif · pembaruan terakhir 12 menit lalu
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -113,7 +120,7 @@ export function DashboardEksekutif({
           alignItems: 'start',
         }}
       >
-        <ProjectMatrix rows={all} gaya={matrixStyle} onJump={onJump} />
+        <ProjectMatrix rows={all} projects={projects} gaya={matrixStyle} onJump={onJump} />
         <ComplianceCalendar rows={all} total={totalTenggat} />
       </div>
 

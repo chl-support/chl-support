@@ -1,7 +1,6 @@
 import type { CSSProperties } from 'react'
 import { C, MODUL, ST } from '@/data/constants'
-import { PROYEK } from '@/data/projects'
-import type { Item, ItemStatus, ModuleId, ProjectId } from '@/data/types'
+import type { Item, ItemStatus, ModuleId, Project, ProjectId } from '@/data/types'
 import { fmtTgl, hari, inisial, rp } from './format'
 
 export interface DeadlineMeta {
@@ -115,13 +114,13 @@ export function riskColor(risiko: string): string {
 }
 
 /** Turns a raw Item into everything the tables, chips and drawer need. */
-export function buildRow(i: Item, idx: number): Row {
+export function buildRow(i: Item, idx: number, projects: Project[] = []): Row {
   const dm = deadlineMeta(i.status, i.tgl)
   const warna = ST[i.status] ?? C.idle
   const kode = i.modul.slice(0, 3).toUpperCase() + '-' + String(idx + 101)
   const risikoWarna = riskColor(i.risiko)
   const mod = MODUL.find((m) => m.id === i.modul)
-  const pr = PROYEK.find((p) => p.id === i.proyek)
+  const pr = projects.find((p) => p.id === i.proyek)
 
   return {
     key: kode,

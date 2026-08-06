@@ -1,38 +1,33 @@
 import { useState, type CSSProperties } from 'react'
-import { A, MODUL } from '@/data/constants'
-import type {
-  Horizon,
-  Item,
-  ItemStatus,
-  ModuleId,
-  Project,
-  ProjectId,
-  Risiko,
-} from '@/data/types'
-import { saveItem } from '@/lib/api'
+import { A, C } from '@/data/constants'
+import type { Project } from '@/data/types'
+import { saveProject } from '@/lib/api'
 
-const STATUS_OPTS: ItemStatus[] = [
-  'Belum Dimulai',
-  'Berjalan',
-  'Menunggu Pihak Ketiga',
-  'Menunggu Verifikasi',
-  'Selesai',
-  'Diblokir',
-  'Dibatalkan',
+const FASE_OPTS = ['Pra-Akuisisi', 'Akuisisi', 'Perizinan', 'Konstruksi', 'Serah Terima']
+const WARNA_OPTS = [
+  { label: 'Teal', v: A },
+  { label: 'Hijau', v: C.done },
+  { label: 'Biru', v: C.run },
+  { label: 'Kuning', v: C.due },
+  { label: 'Merah', v: C.late },
 ]
-const RISIKO_OPTS: Risiko[] = ['Rendah', 'Sedang', 'Tinggi']
-const HORIZON_OPTS: Horizon[] = ['Pendek', 'Panjang']
 
-interface NewItemDialogProps {
-  /** Konteks layar aktif — dipakai sebagai nilai awal form. */
-  defaultProyek: ProjectId
-  defaultModul: ModuleId
-  defaultHorizon: Horizon
-  /** Daftar proyek hidup untuk pemilih proyek. */
-  projects: Project[]
+function slugify(s: string): string {
+  return (
+    s
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 32) || 'proyek'
+  )
+}
+
+interface NewProjectDialogProps {
+  /** id proyek yang sudah ada — untuk mencegah tabrakan slug. */
+  existingIds: string[]
   onClose: () => void
-  /** Dipanggil dengan item lengkap (sudah punya id dari DB) setelah tersimpan. */
-  onCreated: (item: Item) => void
+  onCreated: (project: Project) => void
 }
 
 const label: CSSProperties = {
@@ -58,64 +53,56 @@ const field: CSSProperties = {
   boxSizing: 'border-box',
 }
 
-/**
- * Modal "Item baru" — menulis satu baris ke `/api/items`. Nilai awal mengikuti
- * proyek/modul/horizon layar yang sedang dibuka, sehingga item langsung tampil
- * di tabel setelah dibuat.
- */
-export function NewItemDialog({
-  defaultProyek,
-  defaultModul,
-  defaultHorizon,
-  projects,
-  onClose,
-  onCreated,
-}: NewItemDialogProps) {
-  const [judul, setJudul] = useState('')
-  const [modul, setModul] = useState<ModuleId>(defaultModul)
-  const [proyek, setProyek] = useState<ProjectId>(defaultProyek)
-  const [horizon, setHorizon] = useState<Horizon>(defaultHorizon)
-  const [status, setStatus] = useState<ItemStatus>('Belum Dimulai')
-  const [pic, setPic] = useState('')
-  const [verif, setVerif] = useState('')
-  const [tgl, setTgl] = useState('')
-  const [nilai, setNilai] = useState('')
-  const [risiko, setRisiko] = useState<Risiko>('Rendah')
-  const [blockReason, setBlockReason] = useState('')
+/** Modal "Proyek baru" — menulis satu baris ke `/api/projects`. */
+export function NewProjectDialog({ existingIds, onClose, onCreated }: NewProjectDialogProps) {
+  const [nama, setNama] = useState('')
+  const [idTouched, setIdTouched] = useState(false)
+  const [id, setId] = useState('')
+  const [lok, setLok] = useState('')
+  const [ha, setHa] = useState('')
+  const [unit, setUnit] = useState('')
+  const [fase, setFase] = useState(FASE_OPTS[0])
+  const [warna, setWarna] = useState(A)
+  const [pemda, setPemda] = useState('')
+  const [sla, setSla] = useState('')
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
+  // The slug follows the name until the user edits the id field directly.
+  const effectiveId = (idTouched ? id : slugify(nama)).trim()
+
   async function onSave() {
-    if (!judul.trim()) {
-      setErr('Judul wajib diisi.')
+    if (!nama.trim()) {
+      setErr('Nama proyek wajib diisi.')
       return
     }
-    if (!tgl) {
-      setErr('Tanggal target wajib diisi.')
+    if (!effectiveId) {
+      setErr('Id/slug proyek tidak valid.')
+      return
+    }
+    if (existingIds.includes(effectiveId)) {
+      setErr(`Id "${effectiveId}" sudah dipakai proyek lain. Ubah id-nya.`)
       return
     }
     setSaving(true)
     setErr(null)
-    const item: Item = {
-      judul: judul.trim(),
-      modul,
-      proyek,
-      horizon,
-      status,
-      pic: pic.trim(),
-      verif: verif.trim(),
-      tgl,
-      nilai: Number(nilai) || 0,
-      risiko,
-      dok: 0,
-      blockReason: status === 'Diblokir' ? blockReason.trim() || null : null,
+    const project: Project = {
+      id: effectiveId,
+      nama: nama.trim(),
+      lok: lok.trim(),
+      ha: ha.trim(),
+      unit: Number(unit) || 0,
+      fase,
+      warna,
+      pemda: pemda.trim(),
+      sla: sla.trim(),
     }
-    const res = await saveItem(item)
+    const res = await saveProject(project)
     setSaving(false)
     if (res.ok) {
-      onCreated({ ...item, id: res.id })
+      onCreated({ ...project, id: res.slug ?? effectiveId })
     } else {
-      setErr(res.error ?? 'Gagal menyimpan.')
+      setErr(res.error ?? 'Gagal menyimpan proyek.')
     }
   }
 
@@ -166,10 +153,10 @@ export function NewItemDialog({
         >
           <div>
             <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.07em', color: A }}>
-              ITEM BARU
+              PROYEK BARU
             </div>
             <h2 style={{ margin: '3px 0 0', fontSize: 17, fontWeight: 800, letterSpacing: '-0.02em' }}>
-              Tambah item proyek
+              Tambah proyek
             </h2>
           </div>
           <button
@@ -200,123 +187,111 @@ export function NewItemDialog({
         <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div style={{ gridColumn: '1 / -1' }}>
-              <label style={label}>JUDUL *</label>
+              <label style={label}>NAMA PROYEK *</label>
               <input
                 style={field}
-                value={judul}
-                onChange={(e) => setJudul(e.target.value)}
-                placeholder="mis. Pengurusan PBG tahap 2"
+                value={nama}
+                onChange={(e) => setNama(e.target.value)}
+                placeholder="mis. Harmoni Serpong Fase 2"
                 autoFocus
               />
             </div>
 
             <div>
-              <label style={label}>MODUL</label>
-              <select style={field} value={modul} onChange={(e) => setModul(e.target.value as ModuleId)}>
-                {MODUL.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label style={label}>PROYEK</label>
-              <select style={field} value={proyek} onChange={(e) => setProyek(e.target.value as ProjectId)}>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nama}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label style={label}>HORIZON</label>
-              <select
-                style={field}
-                value={horizon}
-                onChange={(e) => setHorizon(e.target.value as Horizon)}
-              >
-                {HORIZON_OPTS.map((h) => (
-                  <option key={h} value={h}>
-                    Jangka {h}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label style={label}>STATUS</label>
-              <select
-                style={field}
-                value={status}
-                onChange={(e) => setStatus(e.target.value as ItemStatus)}
-              >
-                {STATUS_OPTS.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label style={label}>PIC</label>
+              <label style={label}>ID / SLUG</label>
               <input
                 style={field}
-                value={pic}
-                onChange={(e) => setPic(e.target.value)}
-                placeholder="penanggung jawab"
+                value={effectiveId}
+                onChange={(e) => {
+                  setIdTouched(true)
+                  setId(slugify(e.target.value))
+                }}
+                placeholder="otomatis dari nama"
               />
             </div>
             <div>
-              <label style={label}>VERIFIKATOR</label>
+              <label style={label}>FASE</label>
+              <select style={field} value={fase} onChange={(e) => setFase(e.target.value)}>
+                {FASE_OPTS.map((f) => (
+                  <option key={f} value={f}>
+                    {f}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label style={label}>LOKASI</label>
               <input
                 style={field}
-                value={verif}
-                onChange={(e) => setVerif(e.target.value)}
-                placeholder="pemverifikasi"
+                value={lok}
+                onChange={(e) => setLok(e.target.value)}
+                placeholder="mis. Tangerang Selatan"
+              />
+            </div>
+            <div>
+              <label style={label}>PEMDA</label>
+              <input
+                style={field}
+                value={pemda}
+                onChange={(e) => setPemda(e.target.value)}
+                placeholder="mis. Kota Tangerang Selatan"
               />
             </div>
 
             <div>
-              <label style={label}>TARGET *</label>
-              <input style={field} type="date" value={tgl} onChange={(e) => setTgl(e.target.value)} />
+              <label style={label}>LUAS (HA)</label>
+              <input
+                style={field}
+                value={ha}
+                onChange={(e) => setHa(e.target.value)}
+                placeholder="mis. 8,4 Ha"
+              />
             </div>
             <div>
-              <label style={label}>NILAI (Rp)</label>
+              <label style={label}>JUMLAH UNIT</label>
               <input
                 style={field}
                 type="number"
                 min={0}
-                value={nilai}
-                onChange={(e) => setNilai(e.target.value)}
+                value={unit}
+                onChange={(e) => setUnit(e.target.value)}
                 placeholder="0"
               />
             </div>
 
-            <div>
-              <label style={label}>RISIKO</label>
-              <select style={field} value={risiko} onChange={(e) => setRisiko(e.target.value as Risiko)}>
-                {RISIKO_OPTS.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </select>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={label}>SLA / CATATAN</label>
+              <input
+                style={field}
+                value={sla}
+                onChange={(e) => setSla(e.target.value)}
+                placeholder="mis. KKPR terbit 1×24 jam"
+              />
             </div>
 
-            {status === 'Diblokir' && (
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label style={label}>ALASAN DIBLOKIR</label>
-                <input
-                  style={field}
-                  value={blockReason}
-                  onChange={(e) => setBlockReason(e.target.value)}
-                  placeholder="mis. menunggu siteplan definitif"
-                />
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={label}>WARNA PENANDA</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {WARNA_OPTS.map((w) => (
+                  <button
+                    key={w.v}
+                    type="button"
+                    onClick={() => setWarna(w.v)}
+                    title={w.label}
+                    style={{
+                      width: 30,
+                      height: 30,
+                      borderRadius: 8,
+                      cursor: 'pointer',
+                      background: w.v,
+                      border: warna === w.v ? '2px solid #111827' : '2px solid transparent',
+                      boxShadow: warna === w.v ? '0 0 0 2px #fff inset' : undefined,
+                    }}
+                  />
+                ))}
               </div>
-            )}
+            </div>
           </div>
 
           {err && (
@@ -354,7 +329,7 @@ export function NewItemDialog({
               boxShadow: 'var(--shadow-sm)',
             }}
           >
-            {saving ? 'Menyimpan…' : 'Simpan item'}
+            {saving ? 'Menyimpan…' : 'Simpan proyek'}
           </button>
           <button
             type="button"
