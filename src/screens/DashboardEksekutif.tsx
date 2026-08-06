@@ -1,6 +1,9 @@
+import { useState } from 'react'
 import { C } from '@/data/constants'
 import type { ModuleId, Project, ProjectId } from '@/data/types'
 import { ComplianceCalendar } from '@/components/ComplianceCalendar'
+import { ExportRingkasanDialog } from '@/components/ExportRingkasanDialog'
+import { RapatMingguanDialog } from '@/components/RapatMingguanDialog'
 import { DataTable } from '@/components/DataTable'
 import { KpiCard, type Kpi } from '@/components/KpiCard'
 import { PillButton } from '@/components/PillButton'
@@ -36,6 +39,9 @@ export function DashboardEksekutif({
   onJump,
   onSeeAll,
 }: DashboardProps) {
+  const [showExport, setShowExport] = useState(false)
+  const [showRapat, setShowRapat] = useState(false)
+
   const terlambat = all.filter(isTerlambat).length
   const tenggat30 = all.filter(
     (r) => r.status !== 'Selesai' && hari(r.tgl) >= 0 && hari(r.tgl) <= 30,
@@ -94,8 +100,10 @@ export function DashboardEksekutif({
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <PillButton>Ekspor ringkasan</PillButton>
-          <PillButton variant="primary">Rapat mingguan →</PillButton>
+          <PillButton onClick={() => setShowExport(true)}>Ekspor ringkasan</PillButton>
+          <PillButton variant="primary" onClick={() => setShowRapat(true)}>
+            Rapat mingguan →
+          </PillButton>
         </div>
       </div>
 
@@ -164,6 +172,23 @@ export function DashboardEksekutif({
           onOpen={onOpen}
         />
       </div>
+
+      {showExport && (
+        <ExportRingkasanDialog
+          rows={all}
+          projects={projects}
+          hariIni={hariIni}
+          onClose={() => setShowExport(false)}
+        />
+      )}
+      {showRapat && (
+        <RapatMingguanDialog
+          rows={all}
+          projects={projects}
+          hariIni={hariIni}
+          onClose={() => setShowRapat(false)}
+        />
+      )}
     </div>
   )
 }
