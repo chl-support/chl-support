@@ -82,6 +82,12 @@ jadi app tetap jalan meski satu pun resource belum dikonfigurasi.
 | `GET·POST /api/items` | Baca / buat / ubah item di Neon |
 | `POST /api/upload?filename=…&itemId=…` | Unggah lampiran ke Blob (body = isi berkas) |
 | `POST /api/ai` | Asisten AI (OpenAI) — body `{ prompt, context? }` |
+| `GET·POST·DELETE /api/tim` | Menu **Tim** — CRUD direktori jabatan/PIC di Neon |
+| `POST /api/reset` | Bersihkan sisa data demo (butuh body `{ "confirm": "HAPUS DEMO" }`) — tabel `tim` tidak disentuh |
+
+> **Catatan data:** data demo (proyek, item, izin, kelayakan) sudah dikosongkan.
+> Menu lama tetap ada namun kosong sampai diisi data nyata. Menu baru **Tim**
+> berisi direktori jabatan → PIC dan ter-seed dengan data awal saat pertama jalan.
 
 ### Cara memastikan sudah jalan
 

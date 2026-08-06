@@ -26,6 +26,15 @@ export const seedProjects: SeedProject[] = PROYEK
 
 export const seedItems: SeedItem[] = ITEMS
 
+/** Data tim nyata PT Cipta Harmoni Lestari — di-seed sekali saat tabel kosong. */
+export const seedTim: { jabatan: string; nama: string; kontak: string; catatan: string }[] = [
+  { jabatan: 'Head Legal', nama: 'Willy Susanto S.H., M.Kn', kontak: '', catatan: '' },
+  { jabatan: 'License Perizinan', nama: 'Yudi Sugiharto', kontak: '', catatan: '' },
+  { jabatan: 'Collection', nama: 'Agung M. Ramdhani', kontak: '', catatan: '' },
+  { jabatan: 'Keuangan', nama: 'Rudy Susanto', kontak: '', catatan: '' },
+  { jabatan: 'Admin Sales', nama: 'Anneke', kontak: '', catatan: '' },
+]
+
 /**
  * The 11-permit chain is the same template for every project, so seed one copy
  * per project with the divisional PIC / verifier / document assignments.

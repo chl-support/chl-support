@@ -6,7 +6,7 @@ import { askAI, fetchHealth, type Health } from '@/lib/api'
 interface AssistantDockProps {
   dataSource: 'demo' | 'live'
   items: Item[]
-  proyekAktif: Project
+  proyekAktif: Project | undefined
 }
 
 interface Turn {
@@ -56,9 +56,9 @@ export function AssistantDock({ dataSource, items, proyekAktif }: AssistantDockP
     setQ('')
     setBusy(true)
     const proyekItems = items
-      .filter((i) => i.proyek === proyekAktif.id)
+      .filter((i) => !proyekAktif || i.proyek === proyekAktif.id)
       .map((i) => ({ judul: i.judul, modul: i.modul, status: i.status, tenggat: i.tgl, risiko: i.risiko }))
-    const res = await askAI(prompt, { proyek: proyekAktif.nama, items: proyekItems })
+    const res = await askAI(prompt, { proyek: proyekAktif?.nama ?? 'Umum', items: proyekItems })
     setTurns((t) => [
       ...t,
       { role: 'ai', text: res.ok ? (res.text ?? '') : `⚠️ ${res.error}` },
@@ -186,7 +186,7 @@ export function AssistantDock({ dataSource, items, proyekAktif }: AssistantDockP
             {turns.length === 0 && (
               <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', lineHeight: 1.5 }}>
                 {aiReady
-                  ? `Tanya apa saja tentang ${proyekAktif.nama} — mis. "izin apa yang paling mendesak?" atau "ringkas item yang terlambat".`
+                  ? `Tanya apa saja${proyekAktif ? ` tentang ${proyekAktif.nama}` : ''} — mis. "ringkas tugas yang mendesak" atau "buat draf checklist".`
                   : 'Fitur AI belum aktif. Set OPENAI_API_KEY di Vercel untuk mengaktifkan tanya-jawab.'}
               </div>
             )}
