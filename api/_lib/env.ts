@@ -6,7 +6,7 @@
  *
  *   - Neon Postgres  → DATABASE_URL / POSTGRES_URL (either works)
  *   - Vercel Blob    → BLOB_READ_WRITE_TOKEN
- *   - Anthropic key  → ANTHROPIC_API_KEY  (set this one manually — name it exactly)
+ *   - OpenAI key     → OPENAI_API_KEY  (set this one manually — name it exactly)
  *
  * Nothing here throws: every endpoint degrades gracefully and reports what is
  * missing through /api/health instead of crashing the deployment.
@@ -27,11 +27,11 @@ export function blobToken(): string | undefined {
   return process.env.BLOB_READ_WRITE_TOKEN || undefined
 }
 
-export function anthropicKey(): string | undefined {
-  return process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_API_KEY || undefined
+export function openaiKey(): string | undefined {
+  return process.env.OPENAI_API_KEY || process.env.OPENAI_KEY || undefined
 }
 
 /** Model used by the in-app assistant; override with AI_MODEL if desired. */
 export function aiModel(): string {
-  return process.env.AI_MODEL || 'claude-sonnet-5'
+  return process.env.AI_MODEL || 'gpt-4o-mini'
 }

@@ -71,7 +71,7 @@ jadi app tetap jalan meski satu pun resource belum dikonfigurasi.
 | --- | --- | --- |
 | **Neon Postgres** | `DATABASE_URL` / `POSTGRES_URL` | Vercel → **Storage** → hubungkan Neon (env terisi otomatis) |
 | **Vercel Blob** | `BLOB_READ_WRITE_TOKEN` | Vercel → **Storage** → hubungkan Blob store (otomatis) |
-| **Anthropic (AI)** | `ANTHROPIC_API_KEY` | Vercel → **Settings → Environment Variables** (set manual) |
+| **OpenAI (AI)** | `OPENAI_API_KEY` | Vercel → **Settings → Environment Variables** (set manual) |
 
 ### Endpoint
 
@@ -81,7 +81,7 @@ jadi app tetap jalan meski satu pun resource belum dikonfigurasi.
 | `GET /api/bootstrap` | Buat skema + seed data (sekali), lalu kembalikan projects/items/permits dari Neon |
 | `GET·POST /api/items` | Baca / buat / ubah item di Neon |
 | `POST /api/upload?filename=…&itemId=…` | Unggah lampiran ke Blob (body = isi berkas) |
-| `POST /api/ai` | Asisten AI (Anthropic) — body `{ prompt, context? }` |
+| `POST /api/ai` | Asisten AI (OpenAI) — body `{ prompt, context? }` |
 
 ### Cara memastikan sudah jalan
 

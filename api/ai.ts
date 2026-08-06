@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import Anthropic from '@anthropic-ai/sdk'
-import { aiModel, anthropicKey } from './_lib/env'
+import OpenAI from 'openai'
+import { aiModel, openaiKey } from './_lib/env'
 import { fail, methodNotAllowed } from './_lib/http'
 
 const SYSTEM = `Anda asisten untuk Harmoni Command Center, aplikasi internal PT Cipta Harmoni Lestari
@@ -10,14 +10,14 @@ risiko tenggat, urutan perizinan LSD→KKPR→…→PSU). Jika diberi konteks it
 
 /**
  * POST /api/ai  { prompt: string, context?: object }
- * Thin wrapper over the Anthropic Messages API for the in-app assistant.
+ * Thin wrapper over the OpenAI Chat Completions API for the in-app assistant.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return methodNotAllowed(res, ['POST'])
 
-  const key = anthropicKey()
+  const key = openaiKey()
   if (!key) {
-    return fail(res, 503, 'Fitur AI belum aktif — set ANTHROPIC_API_KEY di Environment Variables Vercel.')
+    return fail(res, 503, 'Fitur AI belum aktif — set OPENAI_API_KEY di Environment Variables Vercel.')
   }
 
   try {
@@ -29,20 +29,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ? `Konteks (JSON):\n${JSON.stringify(b.context).slice(0, 6000)}\n\nPertanyaan: ${prompt}`
       : prompt
 
-    const client = new Anthropic({ apiKey: key })
-    const msg = await client.messages.create({
+    const client = new OpenAI({ apiKey: key })
+    const completion = await client.chat.completions.create({
       model: aiModel(),
       max_tokens: 1024,
-      system: SYSTEM,
-      messages: [{ role: 'user', content: userContent }],
+      messages: [
+        { role: 'system', content: SYSTEM },
+        { role: 'user', content: userContent },
+      ],
     })
 
-    const text = msg.content
-      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-      .map((b) => b.text)
-      .join('\n')
-      .trim()
-
+    const text = (completion.choices[0]?.message?.content ?? '').trim()
     res.status(200).json({ ok: true, text, model: aiModel() })
   } catch (e) {
     const err = e as { status?: number; message?: string }

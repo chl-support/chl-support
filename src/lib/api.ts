@@ -12,7 +12,7 @@ export interface HealthCheck {
 export interface Health {
   ok: boolean
   ready: boolean
-  checks: { neon: HealthCheck; blob: HealthCheck; anthropic: HealthCheck }
+  checks: { neon: HealthCheck; blob: HealthCheck; openai: HealthCheck }
 }
 
 export interface Bootstrap {

@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { anthropicKey, blobToken, databaseUrl } from './_lib/env'
+import { blobToken, databaseUrl, openaiKey } from './_lib/env'
 import { db } from './_lib/db'
 
 /**
@@ -10,7 +10,7 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
   const checks: Record<string, { configured: boolean; ok: boolean; detail: string }> = {
     neon: { configured: !!databaseUrl(), ok: false, detail: '' },
     blob: { configured: !!blobToken(), ok: false, detail: '' },
-    anthropic: { configured: !!anthropicKey(), ok: false, detail: '' },
+    openai: { configured: !!openaiKey(), ok: false, detail: '' },
   }
 
   // Neon: run a trivial query to prove the connection actually works.
@@ -44,10 +44,10 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
     ? 'token tersedia (BLOB_READ_WRITE_TOKEN)'
     : 'BLOB_READ_WRITE_TOKEN belum di-set (hubungkan Blob store)'
 
-  checks.anthropic.ok = checks.anthropic.configured
-  checks.anthropic.detail = checks.anthropic.configured
-    ? 'API key tersedia (ANTHROPIC_API_KEY)'
-    : 'ANTHROPIC_API_KEY belum di-set'
+  checks.openai.ok = checks.openai.configured
+  checks.openai.detail = checks.openai.configured
+    ? 'API key tersedia (OPENAI_API_KEY)'
+    : 'OPENAI_API_KEY belum di-set'
 
   const ready = Object.values(checks).every((c) => c.ok)
   res.status(200).json({ ok: ready, ready, checks })

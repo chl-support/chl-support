@@ -25,7 +25,7 @@ const dot = (warna: string) => ({
 /**
  * Floating assistant + backend status. Additive overlay — it does not touch the
  * existing layout. The status row lets you confirm at a glance that Neon, Blob,
- * and the Anthropic key are actually wired up.
+ * and the OpenAI key are actually wired up.
  */
 export function AssistantDock({ dataSource, items, proyekAktif }: AssistantDockProps) {
   const [open, setOpen] = useState(false)
@@ -74,11 +74,11 @@ export function AssistantDock({ dataSource, items, proyekAktif }: AssistantDockP
           detail: health.checks.neon.detail,
         },
         { label: 'Blob storage', ok: health.checks.blob.ok, detail: health.checks.blob.detail },
-        { label: 'Fitur AI (Anthropic)', ok: health.checks.anthropic.ok, detail: health.checks.anthropic.detail },
+        { label: 'Fitur AI (OpenAI)', ok: health.checks.openai.ok, detail: health.checks.openai.detail },
       ]
     : []
 
-  const aiReady = health?.checks.anthropic.ok ?? false
+  const aiReady = health?.checks.openai.ok ?? false
 
   return (
     <>
@@ -187,7 +187,7 @@ export function AssistantDock({ dataSource, items, proyekAktif }: AssistantDockP
               <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF', lineHeight: 1.5 }}>
                 {aiReady
                   ? `Tanya apa saja tentang ${proyekAktif.nama} — mis. "izin apa yang paling mendesak?" atau "ringkas item yang terlambat".`
-                  : 'Fitur AI belum aktif. Set ANTHROPIC_API_KEY di Vercel untuk mengaktifkan tanya-jawab.'}
+                  : 'Fitur AI belum aktif. Set OPENAI_API_KEY di Vercel untuk mengaktifkan tanya-jawab.'}
               </div>
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
