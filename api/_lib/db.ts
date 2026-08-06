@@ -4,8 +4,8 @@
  * queries the API needs.
  */
 import { neon, type NeonQueryFunction } from '@neondatabase/serverless'
-import { databaseUrl } from './env'
-import { seedItems, seedPermits, seedProjects, seedTim } from './seed'
+import { databaseUrl } from './env.js'
+import { seedItems, seedPermits, seedProjects, seedTim } from './seed.js'
 
 let cached: NeonQueryFunction<false, false> | null = null
 

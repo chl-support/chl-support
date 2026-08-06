@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { blobToken, databaseUrl, openaiKey } from './_lib/env'
-import { db } from './_lib/db'
+import { blobToken, databaseUrl, openaiKey } from './_lib/env.js'
+import { db } from './_lib/db.js'
 
 /**
  * Diagnostic endpoint — visit /api/health to confirm the three Vercel resources
