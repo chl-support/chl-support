@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { deleteTim, ensureSchema, getTim, hasDb, seedTimIfEmpty, upsertTim } from './_lib/db'
-import { fail, methodNotAllowed } from './_lib/http'
+import { deleteTim, ensureSchema, getTim, hasDb, seedTimIfEmpty, upsertTim } from './_lib/db.js'
+import { fail, methodNotAllowed } from './_lib/http.js'
 
 /**
  * GET    /api/tim         → daftar seluruh personel/jabatan

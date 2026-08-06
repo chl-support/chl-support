@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { del, put } from '@vercel/blob'
-import { blobToken } from './_lib/env'
+import { blobToken } from './_lib/env.js'
 import {
   deleteAuditDoc,
   ensureSchema,
@@ -9,8 +9,8 @@ import {
   getAuditDocs,
   hasDb,
   insertAuditDoc,
-} from './_lib/db'
-import { fail, methodNotAllowed, readRawBody, sendFile } from './_lib/http'
+} from './_lib/db.js'
+import { fail, methodNotAllowed, readRawBody, sendFile } from './_lib/http.js'
 
 // Keep the raw body intact so the file can be streamed to Blob.
 export const config = { api: { bodyParser: false } }

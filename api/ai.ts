@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import OpenAI from 'openai'
-import { aiModel, openaiKey } from './_lib/env'
-import { fail, methodNotAllowed } from './_lib/http'
+import { aiModel, openaiKey } from './_lib/env.js'
+import { fail, methodNotAllowed } from './_lib/http.js'
 
 const SYSTEM = `Anda asisten untuk Harmoni Command Center, aplikasi internal PT Cipta Harmoni Lestari
 untuk memantau kewajiban, perizinan, dokumen, tenggat, dan biaya awal proyek perumahan.
