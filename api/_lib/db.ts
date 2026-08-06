@@ -111,6 +111,13 @@ export async function ensureSchema(): Promise<void> {
       catatan      TEXT DEFAULT '',
       uploaded_at  TIMESTAMPTZ DEFAULT now()
     )`
+
+  // Fallback storage: when Vercel Blob is not connected, the file bytes are kept
+  // (base64) in these columns so uploads still work with only Neon configured.
+  // Added via ALTER so deployments created before the fallback pick them up too.
+  await sql`ALTER TABLE audit_docs ADD COLUMN IF NOT EXISTS data TEXT`
+  await sql`ALTER TABLE attachments ADD COLUMN IF NOT EXISTS data TEXT`
+  await sql`ALTER TABLE attachments ADD COLUMN IF NOT EXISTS content_type TEXT DEFAULT ''`
 }
 
 /** Seeds the real team directory the first time the table is empty. */
@@ -277,17 +284,24 @@ export interface AuditDocRow {
 
 export async function getAuditDocs(): Promise<AuditDocRow[]> {
   const sql = db()
-  const rows = (await sql`SELECT * FROM audit_docs ORDER BY uploaded_at DESC`) as Record<string, unknown>[]
-  return rows.map((r) => ({
-    id: Number(r.id),
-    judul: String(r.judul ?? ''),
-    filename: String(r.filename ?? ''),
-    url: String(r.url ?? ''),
-    size: Number(r.size ?? 0),
-    contentType: String(r.content_type ?? ''),
-    catatan: String(r.catatan ?? ''),
-    uploadedAt: r.uploaded_at instanceof Date ? r.uploaded_at.toISOString() : String(r.uploaded_at ?? ''),
-  }))
+  const rows = (await sql`
+    SELECT id, judul, filename, url, size, content_type, catatan, uploaded_at
+    FROM audit_docs ORDER BY uploaded_at DESC`) as Record<string, unknown>[]
+  return rows.map((r) => {
+    const id = Number(r.id)
+    const stored = String(r.url ?? '')
+    return {
+      id,
+      judul: String(r.judul ?? ''),
+      filename: String(r.filename ?? ''),
+      // Blob-hosted files carry an absolute URL; DB-stored files get a download route.
+      url: stored || `/api/audit?download=${id}`,
+      size: Number(r.size ?? 0),
+      contentType: String(r.content_type ?? ''),
+      catatan: String(r.catatan ?? ''),
+      uploadedAt: r.uploaded_at instanceof Date ? r.uploaded_at.toISOString() : String(r.uploaded_at ?? ''),
+    }
+  })
 }
 
 export async function insertAuditDoc(doc: {
@@ -297,11 +311,14 @@ export async function insertAuditDoc(doc: {
   size: number
   contentType: string
   catatan: string
+  /** base64 of the file bytes — set only for the Neon fallback (no Blob). */
+  data?: string | null
 }): Promise<number> {
   const sql = db()
   const [r] = (await sql`
-    INSERT INTO audit_docs (judul, filename, url, size, content_type, catatan)
-    VALUES (${doc.judul}, ${doc.filename}, ${doc.url}, ${doc.size}, ${doc.contentType}, ${doc.catatan})
+    INSERT INTO audit_docs (judul, filename, url, size, content_type, catatan, data)
+    VALUES (${doc.judul}, ${doc.filename}, ${doc.url}, ${doc.size}, ${doc.contentType},
+            ${doc.catatan}, ${doc.data ?? null})
     RETURNING id`) as { id: number }[]
   return r.id
 }
@@ -312,6 +329,59 @@ export async function getAuditDocUrl(id: number): Promise<string | null> {
   return r?.url ?? null
 }
 
+/** Bytes + metadata for a DB-stored audit file, or null when it lives in Blob. */
+export async function getAuditDocData(
+  id: number,
+): Promise<{ data: string; filename: string; contentType: string } | null> {
+  const sql = db()
+  const [r] = (await sql`
+    SELECT data, filename, content_type FROM audit_docs WHERE id=${id}`) as {
+    data: string | null
+    filename: string
+    content_type: string
+  }[]
+  if (!r || !r.data) return null
+  return { data: r.data, filename: r.filename, contentType: r.content_type || 'application/octet-stream' }
+}
+
 export async function deleteAuditDoc(id: number): Promise<void> {
   await db()`DELETE FROM audit_docs WHERE id=${id}`
+}
+
+// ---- Lampiran item (attachments) — Blob dengan fallback Neon ----
+
+/**
+ * Records an attachment row. Pass `data` (base64) to store the bytes in Neon
+ * when Blob is unavailable; leave it null when `url` already points to Blob.
+ * Returns the new row id (used to build the download route for the fallback).
+ */
+export async function insertAttachment(a: {
+  itemId: number | null
+  url: string
+  filename: string
+  size: number
+  contentType?: string
+  data?: string | null
+}): Promise<number> {
+  const sql = db()
+  const [r] = (await sql`
+    INSERT INTO attachments (item_id, url, filename, size, content_type, data)
+    VALUES (${a.itemId}, ${a.url}, ${a.filename}, ${a.size}, ${a.contentType ?? ''}, ${a.data ?? null})
+    RETURNING id`) as { id: number }[]
+  return r.id
+}
+
+/** Bytes + metadata for a DB-stored attachment, or null when it lives in Blob. */
+export async function getAttachmentData(
+  id: number,
+): Promise<{ data: string; filename: string; contentType: string } | null> {
+  const sql = db()
+  const [r] = (await sql`
+    SELECT data, filename, content_type FROM attachments WHERE id=${id}`) as {
+    data: string | null
+    filename: string
+    content_type: string
+  }[]
+  if (!r || !r.data) return null
+  return { data: r.data, filename: r.filename, contentType: r.content_type || 'application/octet-stream' }
 }

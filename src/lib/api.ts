@@ -90,6 +90,24 @@ export interface MutateResult {
   error?: string
 }
 
+// ---- Items (tabel proyek) ----
+
+/** Membuat (tanpa id) atau mengubah (dengan id) satu item di Neon. */
+export async function saveItem(item: Item): Promise<MutateResult> {
+  try {
+    const res = await fetch('/api/items', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(item),
+    })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
+    return { ok: true, id: data.id }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
 export async function saveTim(row: Personel): Promise<MutateResult> {
   try {
     const res = await fetch('/api/tim', {
