@@ -36,7 +36,7 @@ Alur baku (diatur di `src/data/divisi.ts`) menyusun sembilan divisi dalam tiga k
 | Kelompok | Divisi |
 | --- | --- |
 | Penyiapan dokumen | Admin Proyek → Marketing → Marcom → Admin Sales |
-| Pemeriksaan | License & Perizinan → Collection → Keuangan → Head Legal |
+| Pemeriksaan | License & Perizinan → Collection → Keuangan → Legal |
 | Pengesahan | Direksi |
 
 Urutannya bisa disusun ulang saat mengunggah (klik chip divisi sesuai urutan yang dikehendaki;
