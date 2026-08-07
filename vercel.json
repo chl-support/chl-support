@@ -4,6 +4,22 @@
   "buildCommand": "vite build",
   "outputDirectory": "dist",
   "functions": {
-    "api/**/*.ts": { "maxDuration": 30 }
-  }
+    "api/**/*.ts": {
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/health",
+      "destination": "/api/system?action=health"
+    },
+    {
+      "source": "/api/bootstrap",
+      "destination": "/api/system?action=bootstrap"
+    },
+    {
+      "source": "/api/reset",
+      "destination": "/api/system?action=reset"
+    }
+  ]
 }

@@ -151,6 +151,7 @@ jadi app tetap jalan meski satu pun resource belum dikonfigurasi.
 | --- | --- |
 | `GET /api/health` | Diagnostik — pastikan ketiga resource terhubung & Neon reachable |
 | `GET /api/bootstrap` | Buat skema + seed data (sekali), lalu kembalikan projects/items/permits dari Neon |
+| `GET·POST /api/system` | Function gabungan di balik ketiga path sistem di atas (`?action=health/bootstrap/reset`) |
 | `GET·POST·DELETE /api/projects` | Menu **Proyek** — CRUD proyek (hapus ikut membersihkan item & izinnya) |
 | `GET·POST·DELETE /api/permits` | Menu **Perizinan** — CRUD izin per proyek, dikelompokkan 4 fase |
 | `GET·POST·DELETE /api/corporate` | Bagan **Corporate** — CRUD agenda korporasi, unggah/hapus lampiran bukti |
@@ -179,6 +180,13 @@ jadi app tetap jalan meski satu pun resource belum dikonfigurasi.
 Skema dibuat & di-seed otomatis saat `/api/bootstrap` pertama kali dipanggil (idempoten —
 aman dipanggil ulang, tidak menimpa data yang sudah ada). Lampiran ≤ 4,5 MB per berkas
 (batas body serverless Vercel).
+
+> **Batas jumlah function.** Paket Hobby Vercel hanya mengizinkan **12 Serverless Function per
+> deployment**, dan tiap berkas `api/*.ts` dihitung satu. Karena itu `health`, `bootstrap`, dan
+> `reset` digabung ke `api/system.ts` dengan `?action=…`, sementara path lamanya dipertahankan
+> lewat `rewrites` di `vercel.json`. Saat menambah endpoint baru, hitung dulu berkas di `api/`
+> (`ls api/*.ts`) — bila sudah 12, gabungkan endpoint sejenis alih-alih menambah berkas, karena
+> deployment akan **gagal total** begitu batasnya terlampaui.
 
 ## Data
 
