@@ -31,9 +31,17 @@ dengan modul lain, jadi tidak ada komponen baru yang perlu dirancang.
 ### Monitoring tanda tangan (Internal Audit)
 
 Tiap dokumen membawa **alur tanda tangan**: satu langkah per divisi, dikerjakan **berurutan**.
-Alur baku `Admin Sales → License & Perizinan → Collection → Keuangan → Head Legal → Direksi`
-(diatur di `src/data/divisi.ts`) bisa disusun ulang saat mengunggah, dan tiap dokumen masih bisa
-ditambah/dikurangi divisinya kemudian.
+Alur baku (diatur di `src/data/divisi.ts`) menyusun sembilan divisi dalam tiga kelompok:
+
+| Kelompok | Divisi |
+| --- | --- |
+| Penyiapan dokumen | Admin Proyek → Marketing → Marcom → Admin Sales |
+| Pemeriksaan | License & Perizinan → Collection → Keuangan → Head Legal |
+| Pengesahan | Direksi |
+
+Urutannya bisa disusun ulang saat mengunggah (klik chip divisi sesuai urutan yang dikehendaki;
+divisi yang tidak relevan tinggal dilepas), dan tiap dokumen masih bisa ditambah/dikurangi
+divisinya kemudian lewat stepper.
 
 Status per langkah: `Menunggu → Diproses → Ditandatangani`, dengan cabang `Revisi` (dikembalikan
 ke pengunggah beserta alasannya) dan `Dilewati` (divisi tidak relevan untuk dokumen itu). Hanya
