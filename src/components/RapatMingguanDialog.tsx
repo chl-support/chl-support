@@ -118,8 +118,8 @@ export function RapatMingguanDialog({ rows, projects, hariIni, onClose }: Props)
             <Field label="TEMPAT" value={f.tempat} onChange={(v) => set({ tempat: v })} />
             <Field label="PIMPINAN RAPAT" value={f.pimpinan} onChange={(v) => set({ pimpinan: v })} placeholder="nama & jabatan" />
             <Field label="NOTULEN" value={f.notulen} onChange={(v) => set({ notulen: v })} placeholder="nama & jabatan" />
-            <Area label="PESERTA (satu per baris)" value={f.peserta} onChange={(v) => set({ peserta: v })} placeholder={'Willy Susanto — Head Legal\nYudi Sugiharto — License'} />
-            <Area label="KEPUTUSAN (satu per baris)" value={f.keputusan} onChange={(v) => set({ keputusan: v })} placeholder={'Percepat pengurusan PBG tahap 1\nEskalasi bidang sengketa ke Head Legal'} />
+            <Area label="PESERTA (satu per baris)" value={f.peserta} onChange={(v) => set({ peserta: v })} placeholder={'Willy Susanto — Legal\nYudi Sugiharto — License'} />
+            <Area label="KEPUTUSAN (satu per baris)" value={f.keputusan} onChange={(v) => set({ keputusan: v })} placeholder={'Percepat pengurusan PBG tahap 1\nEskalasi bidang sengketa ke Legal'} />
           </div>
 
           <div style={{ marginTop: 14, fontSize: 11, fontWeight: 600, color: '#9CA3AF', lineHeight: 1.5 }}>

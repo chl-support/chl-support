@@ -129,9 +129,11 @@ export async function ensureSchema(): Promise<void> {
     )`
   await sql`CREATE INDEX IF NOT EXISTS audit_signoffs_doc_idx ON audit_signoffs (doc_id, urut)`
 
-  // Divisi "Head Legal" dinamai ulang menjadi "Legal" — samakan alur yang sudah
-  // tersimpan agar labelnya konsisten dengan alur baru (idempoten).
+  // Divisi "Head Legal" dinamai ulang menjadi "Legal" — samakan data yang sudah
+  // tersimpan (alur tanda tangan & direktori tim) agar labelnya konsisten di
+  // seluruh aplikasi. Keduanya idempoten, jadi aman dijalankan tiap request.
   await sql`UPDATE audit_signoffs SET divisi='Legal' WHERE divisi='Head Legal'`
+  await sql`UPDATE tim SET jabatan='Legal' WHERE jabatan IN ('Head Legal', 'Head of Legal')`
 
   // Fallback storage: when Vercel Blob is not connected, the file bytes are kept
   // (base64) in these columns so uploads still work with only Neon configured.

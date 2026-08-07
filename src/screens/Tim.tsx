@@ -176,7 +176,7 @@ export function Tim() {
                 style={input}
                 value={form.jabatan}
                 onChange={(e) => set({ jabatan: e.target.value })}
-                placeholder="mis. Head Legal"
+                placeholder="mis. Legal"
               />
             </div>
             <div>
