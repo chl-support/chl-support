@@ -23,7 +23,7 @@ export function LicenseDocumentation({ proyekAktif, permits, loading, notice, on
             marginBottom: 5,
           }}
         >
-          BAGAN · DOCUMENT &amp; LICENSE
+          DIVISI SUPPORT CHL · DOCUMENT &amp; LICENSE
         </div>
         <h1 style={{ margin: 0, fontSize: 25, fontWeight: 800, letterSpacing: '-0.025em' }}>
           Perizinan {proyekAktif.nama}

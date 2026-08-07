@@ -291,7 +291,7 @@ export function LandAcquisition({ proyekAktif }: LandAcquisitionProps) {
             marginBottom: 5,
           }}
         >
-          BAGAN · LAND ACQUISITION
+          DIVISI SUPPORT CHL · LAND ACQUISITION
         </div>
         <h1 style={{ margin: 0, fontSize: 25, fontWeight: 800, letterSpacing: '-0.025em' }}>
           Sertifikasi tanah {proyekAktif.nama}

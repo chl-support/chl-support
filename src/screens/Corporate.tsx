@@ -165,7 +165,7 @@ export function Corporate({ proyekAktif }: CorporateProps) {
     <div>
       <div style={{ marginBottom: 18 }}>
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: A, marginBottom: 5 }}>
-          BAGAN · CORPORATE
+          DIVISI SUPPORT CHL · CORPORATE
         </div>
         <h1 style={{ margin: 0, fontSize: 25, fontWeight: 800, letterSpacing: '-0.025em' }}>
           Agenda korporasi {proyekAktif.nama}

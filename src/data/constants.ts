@@ -31,7 +31,7 @@ export const MODUL: Modul[] = [
   { id: 'finance', label: 'Finance & Corr.', pendek: 'Fin' },
 ]
 
-/** The five bagan get their own sidebar entry and drive the module tabs. */
+/** The five Divisi Support CHL each get a sidebar entry and drive the module tabs. */
 export const BAGAN = ['corporate', 'commercial', 'land', 'license', 'social'] as const
 
 export const ST: Record<ItemStatus, string> = {
@@ -91,7 +91,7 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: '5 BAGAN',
+    label: 'DIVISI SUPPORT CHL',
     items: [
       { id: 'corporate', label: 'Corporate', icon: ICON.corporate },
       { id: 'commercial', label: 'Commercial', icon: ICON.commercial },
