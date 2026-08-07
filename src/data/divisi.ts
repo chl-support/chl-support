@@ -13,6 +13,7 @@ export const DIVISI = [
   'Admin Sales',
   'License & Perizinan',
   'Collection',
+  'Budget',
   'Keuangan',
   'Legal',
   'Direksi',
@@ -28,6 +29,7 @@ export const DIVISI_PERAN: Record<string, string> = {
   'Admin Sales': 'Kelengkapan berkas & data pelanggan',
   'License & Perizinan': 'Kesesuaian izin dan dokumen legal proyek',
   Collection: 'Status penagihan & piutang terkait',
+  Budget: 'Ketersediaan pagu & kesesuaian dengan anggaran yang disetujui',
   Keuangan: 'Verifikasi nilai, anggaran, dan pembayaran',
   Legal: 'Telaah hukum & klausul perjanjian',
   Direksi: 'Persetujuan akhir dan tanda tangan pengesahan',
@@ -36,7 +38,7 @@ export const DIVISI_PERAN: Record<string, string> = {
 /**
  * Urutan baku tanda tangan: divisi penyiapan dokumen (Admin Proyek → Marketing
  * → Marcom → Admin Sales), lalu divisi pemeriksa (Perizinan → Collection →
- * Keuangan → Legal), ditutup pengesahan Direksi. Dipakai tombol "Pakai alur
+ * Budget → Keuangan → Legal), ditutup pengesahan Direksi. Dipakai tombol "Pakai alur
  * baku" pada panel unggah; divisi yang tidak relevan tinggal diklik untuk
  * dikeluarkan sebelum dokumen diunggah.
  */
@@ -47,6 +49,7 @@ export const ALUR_TTD_DEFAULT: string[] = [
   'Admin Sales',
   'License & Perizinan',
   'Collection',
+  'Budget',
   'Keuangan',
   'Legal',
   'Direksi',

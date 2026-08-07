@@ -77,12 +77,12 @@ siap AJB, serta yang lewat target.
 ### Monitoring tanda tangan (Internal Audit)
 
 Tiap dokumen membawa **alur tanda tangan**: satu langkah per divisi, dikerjakan **berurutan**.
-Alur baku (diatur di `src/data/divisi.ts`) menyusun sembilan divisi dalam tiga kelompok:
+Alur baku (diatur di `src/data/divisi.ts`) menyusun sepuluh divisi dalam tiga kelompok:
 
 | Kelompok | Divisi |
 | --- | --- |
 | Penyiapan dokumen | Admin Proyek → Marketing → Marcom → Admin Sales |
-| Pemeriksaan | License & Perizinan → Collection → Keuangan → Legal |
+| Pemeriksaan | License & Perizinan → Collection → Budget → Keuangan → Legal |
 | Pengesahan | Direksi |
 
 Urutannya bisa disusun ulang saat mengunggah (klik chip divisi sesuai urutan yang dikehendaki;
