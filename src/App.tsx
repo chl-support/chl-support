@@ -20,6 +20,7 @@ import { LicenseDocumentation } from '@/screens/LicenseDocumentation'
 import { ModulKosong } from '@/screens/ModulKosong'
 import { Tim } from '@/screens/Tim'
 import { InternalAudit } from '@/screens/InternalAudit'
+import { LandAcquisition } from '@/screens/LandAcquisition'
 
 const isBagan = (id: NavId): id is (typeof BAGAN)[number] =>
   (BAGAN as readonly string[]).includes(id)
@@ -167,6 +168,9 @@ export default function App() {
     } else if (id === 'license') {
       setScreen('lisensi')
       setModul('license')
+    } else if (id === 'land') {
+      setScreen('land')
+      setModul('land')
     } else if (id === 'feasibility') {
       setScreen('feasibility')
       setModul('feasibility')
@@ -189,7 +193,9 @@ export default function App() {
   }
 
   function onJump(p: ProjectId, m: ModuleId) {
-    setScreen(m === 'license' ? 'lisensi' : m === 'feasibility' ? 'feasibility' : 'proyek')
+    setScreen(
+      m === 'license' ? 'lisensi' : m === 'feasibility' ? 'feasibility' : m === 'land' ? 'land' : 'proyek',
+    )
     setNav(m)
     setProyek(p)
     setModul(m)
@@ -311,6 +317,13 @@ export default function App() {
                   notice={permitsNotice}
                   onChanged={() => loadPermits(proyek)}
                 />
+              ) : (
+                <NoProjectNotice onAddProject={() => setNewProject(true)} />
+              ))}
+
+            {screen === 'land' &&
+              (proyekAktif ? (
+                <LandAcquisition proyekAktif={proyekAktif} />
               ) : (
                 <NoProjectNotice onAddProject={() => setNewProject(true)} />
               ))}

@@ -21,12 +21,32 @@ npm run typecheck
 | **Dashboard Eksekutif** | 6 KPI · matriks proyek × 6 modul · kalender kepatuhan 90 hari · tabel "Perlu perhatian Anda" |
 | **Detail Proyek** | Header proyek · 7 tab modul · sub-tab Jangka Pendek/Panjang · filter status · BlockerBanner |
 | **Document & License** | Bagan izin bertahap 4 fase (Pra-Akuisisi → Serah Terima) · CRUD izin per proyek · progress per fase |
+| **Land Acquisition** | Status sertifikasi bidang tanah · 2 tahap × 2 jalur · 5 KPI · CRUD bidang per proyek |
 | **Feasibility & Initial Cost** | KPI NPV/IRR/Payback/Margin/BEP/Peak Cash · kurva kas kumulatif · sensitivitas · 11 tahap initial cost |
 | **ItemDrawer** | Panel 480px: stepper verifikasi · form · lampiran · ketergantungan · jejak audit |
 | **Internal Audit** | Unggah dokumen · 5 KPI alur · filter status · stepper tanda tangan bertahap antar divisi |
 
 Modul P2 (Finance & Correspondence, Pengaturan) menampilkan `ModulKosong` — strukturnya identik
 dengan modul lain, jadi tidak ada komponen baru yang perlu dirancang.
+
+### Status sertifikasi tanah (Land Acquisition)
+
+Layar ini menayangkan posisi sertifikat tiap **bidang tanah** dalam dua tahap; tiap tahap punya
+dua jalur, dan tiap jalur satu hasil akhir yang tetap (`src/data/lands.ts`):
+
+| Tahap | Jalur | Hasil |
+| --- | --- | --- |
+| **Akuisisi** — perolehan PT | Tanah Girik | Penerbitan Sertifikat |
+| | Tanah Sertifikat | Balik Nama PT |
+| **Pasca Akuisisi** — pelepasan PT kepada konsumen | Sertifikat Hak Guna Bangunan | Siap AJB |
+| | Sertifikat Hak Milik | Siap AJB |
+
+Hasil tidak disimpan di database — selalu diturunkan dari jenis bidangnya lewat `hasilDari()`,
+jadi satu bidang tidak bisa berada di jalur dan hasil yang tidak cocok. Tiap bidang membawa kode,
+letak, luas, pemilik/atas nama, nomor girik/sertifikat, status (memakai palet status yang sama
+dengan modul lain), target, PIC, dan catatan. Bidang yang lewat target memunculkan chip
+Terlambat, dan KPI di atas merangkum jumlah bidang, total luas, perolehan PT yang tuntas, bidang
+siap AJB, serta yang lewat target.
 
 ### Monitoring tanda tangan (Internal Audit)
 
@@ -107,6 +127,7 @@ jadi app tetap jalan meski satu pun resource belum dikonfigurasi.
 | `GET /api/bootstrap` | Buat skema + seed data (sekali), lalu kembalikan projects/items/permits dari Neon |
 | `GET·POST·DELETE /api/projects` | Menu **Proyek** — CRUD proyek (hapus ikut membersihkan item & izinnya) |
 | `GET·POST·DELETE /api/permits` | Menu **Perizinan** — CRUD izin per proyek, dikelompokkan 4 fase |
+| `GET·POST·DELETE /api/lands` | Bagan **Land Acquisition** — CRUD bidang tanah per proyek |
 | `GET·POST /api/items` | Baca / buat / ubah item di Neon |
 | `POST /api/upload?filename=…&itemId=…` | Unggah lampiran ke Blob (body = isi berkas) |
 | `POST /api/ai` | Asisten AI (OpenAI) — body `{ prompt, context? }` |

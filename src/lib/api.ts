@@ -5,6 +5,7 @@
 import type {
   AuditDoc,
   Item,
+  Land,
   Permit,
   Personel,
   Project,
@@ -158,6 +159,43 @@ export async function savePermit(permit: Permit): Promise<MutateResult> {
 export async function deletePermit(id: number): Promise<MutateResult> {
   try {
     const res = await fetch(`/api/permits?id=${id}`, { method: 'DELETE' })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
+    return { ok: true, id }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
+// ---- Lands (bidang tanah — bagan Land Acquisition) ----
+
+export type LandRecord = Land & { id: number }
+
+export async function fetchLands(proyek: string): Promise<LandRecord[] | null> {
+  const data = await getJson<{ lands: LandRecord[] }>(
+    `/api/lands?proyek=${encodeURIComponent(proyek)}`,
+  )
+  return data ? data.lands : null
+}
+
+export async function saveLand(land: Land): Promise<MutateResult> {
+  try {
+    const res = await fetch('/api/lands', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(land),
+    })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
+    return { ok: true, id: data.id }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
+export async function deleteLand(id: number): Promise<MutateResult> {
+  try {
+    const res = await fetch(`/api/lands?id=${id}`, { method: 'DELETE' })
     const data = await res.json().catch(() => null)
     if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
     return { ok: true, id }

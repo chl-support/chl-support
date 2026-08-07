@@ -81,6 +81,25 @@ export async function ensureSchema(): Promise<void> {
       verif     TEXT,
       dok       INTEGER DEFAULT 0
     )`
+  // Bidang tanah pada bagan Land Acquisition. Tahap & hasil akhir diturunkan
+  // dari kolom "jenis" di frontend, jadi tidak ada kolom turunan di sini.
+  await sql`
+    CREATE TABLE IF NOT EXISTS lands (
+      id         SERIAL PRIMARY KEY,
+      proyek     TEXT NOT NULL,
+      kode       TEXT DEFAULT '',
+      nama       TEXT NOT NULL,
+      pemilik    TEXT DEFAULT '',
+      luas       INTEGER DEFAULT 0,
+      jenis      TEXT NOT NULL,
+      no_dok     TEXT DEFAULT '',
+      status     TEXT NOT NULL DEFAULT 'Belum Dimulai',
+      tgl        DATE,
+      pic        TEXT DEFAULT '',
+      catatan    TEXT DEFAULT '',
+      updated_at TIMESTAMPTZ DEFAULT now()
+    )`
+  await sql`CREATE INDEX IF NOT EXISTS lands_proyek_idx ON lands (proyek)`
   await sql`
     CREATE TABLE IF NOT EXISTS attachments (
       id         SERIAL PRIMARY KEY,
@@ -246,11 +265,12 @@ export async function upsertProject(p: {
   return r.id
 }
 
-/** Removes a project and everything scoped to it (items + permits). */
+/** Removes a project and everything scoped to it (items + permits + lands). */
 export async function deleteProject(id: string): Promise<void> {
   const sql = db()
   await sql`DELETE FROM items WHERE proyek=${id}`
   await sql`DELETE FROM permits WHERE proyek=${id}`
+  await sql`DELETE FROM lands WHERE proyek=${id}`
   await sql`DELETE FROM projects WHERE id=${id}`
 }
 
@@ -315,6 +335,89 @@ export async function upsertPermit(p: {
 
 export async function deletePermit(id: number): Promise<void> {
   await db()`DELETE FROM permits WHERE id=${id}`
+}
+
+// ---- Land Acquisition — bidang tanah ----
+
+export interface LandRow {
+  id: number
+  proyek: string
+  kode: string
+  nama: string
+  pemilik: string
+  luas: number
+  jenis: string
+  noDok: string
+  status: string
+  tgl: string
+  pic: string
+  catatan: string
+}
+
+export async function getLands(proyek?: string): Promise<LandRow[]> {
+  const sql = db()
+  const rows = (
+    proyek
+      ? await sql`SELECT * FROM lands WHERE proyek=${proyek} ORDER BY kode, id`
+      : await sql`SELECT * FROM lands ORDER BY proyek, kode, id`
+  ) as Record<string, unknown>[]
+  return rows.map((r) => ({
+    id: Number(r.id),
+    proyek: String(r.proyek ?? ''),
+    kode: String(r.kode ?? ''),
+    nama: String(r.nama ?? ''),
+    pemilik: String(r.pemilik ?? ''),
+    luas: Number(r.luas ?? 0),
+    jenis: String(r.jenis ?? ''),
+    noDok: String(r.no_dok ?? ''),
+    status: String(r.status ?? 'Belum Dimulai'),
+    tgl: r.tgl ? isoDate(r.tgl) : '',
+    pic: String(r.pic ?? ''),
+    catatan: String(r.catatan ?? ''),
+  }))
+}
+
+export async function upsertLand(p: {
+  id?: number
+  proyek: string
+  kode?: string
+  nama: string
+  pemilik?: string
+  luas?: number
+  jenis: string
+  noDok?: string
+  status?: string
+  tgl?: string | null
+  pic?: string
+  catatan?: string
+}): Promise<number> {
+  const sql = db()
+  const kode = p.kode ?? ''
+  const pemilik = p.pemilik ?? ''
+  const luas = p.luas ?? 0
+  const noDok = p.noDok ?? ''
+  const status = p.status ?? 'Belum Dimulai'
+  const tgl = p.tgl || null
+  const pic = p.pic ?? ''
+  const catatan = p.catatan ?? ''
+  if (p.id) {
+    const [r] = (await sql`
+      UPDATE lands SET proyek=${p.proyek}, kode=${kode}, nama=${p.nama}, pemilik=${pemilik},
+        luas=${luas}, jenis=${p.jenis}, no_dok=${noDok}, status=${status}, tgl=${tgl},
+        pic=${pic}, catatan=${catatan}, updated_at=now()
+      WHERE id=${p.id} RETURNING id`) as { id: number }[]
+    return r?.id ?? 0
+  }
+  const [r] = (await sql`
+    INSERT INTO lands (proyek, kode, nama, pemilik, luas, jenis, no_dok, status, tgl, pic, catatan)
+    VALUES (${p.proyek}, ${kode}, ${p.nama}, ${pemilik}, ${luas}, ${p.jenis}, ${noDok},
+            ${status}, ${tgl}, ${pic}, ${catatan})
+    RETURNING id`) as { id: number }[]
+  return r.id
+}
+
+export async function deleteLand(id: number): Promise<void> {
+  await db()`DELETE FROM lands WHERE id=${id}`
 }
 
 // ---- Tim (menu Catatan/direktori) ----

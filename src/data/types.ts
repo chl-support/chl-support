@@ -17,6 +17,7 @@ export type ScreenId =
   | 'kosong'
   | 'tim'
   | 'audit'
+  | 'land'
 
 /**
  * Status satu langkah tanda tangan. Menunggu → Diproses → Ditandatangani,
@@ -137,6 +138,33 @@ export interface Permit {
   pic?: string
   verif?: string
   dok?: number
+}
+
+/** Satu bidang tanah pada bagan Land Acquisition. */
+export interface Land {
+  /** Present only when the parcel comes from the database. */
+  id?: number
+  proyek: ProjectId
+  /** Kode bidang, mis. "BID-01". */
+  kode: string
+  /** Nama/letak bidang, mis. "Persil Blok C1". */
+  nama: string
+  /** Pemilik asal (tahap akuisisi) atau konsumen (tahap pasca akuisisi). */
+  pemilik: string
+  /** Luas bidang dalam m². */
+  luas: number
+  /**
+   * Jalur sertifikasi bidang ini — salah satu dari `LAND_JENIS`. Tahap dan
+   * hasil akhirnya diturunkan dari nilai ini, tidak disimpan terpisah.
+   */
+  jenis: string
+  /** Nomor girik / sertifikat yang sedang diproses. */
+  noDok: string
+  status: ItemStatus
+  /** ISO yyyy-mm-dd target penyelesaian. */
+  tgl: string
+  pic: string
+  catatan: string
 }
 
 export interface Tahap {
