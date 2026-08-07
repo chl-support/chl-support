@@ -18,6 +18,7 @@ export type ScreenId =
   | 'tim'
   | 'audit'
   | 'land'
+  | 'corporate'
 
 /**
  * Status satu langkah tanda tangan. Menunggu → Diproses → Ditandatangani,
@@ -138,6 +139,53 @@ export interface Permit {
   pic?: string
   verif?: string
   dok?: number
+}
+
+/** Satu entri komentar / jejak audit. */
+export interface Komentar {
+  id: number
+  /** Jenis catatan induknya — 'corp' (agenda korporasi) atau 'item'. */
+  entity: string
+  entityId: number
+  aktor: string
+  teks: string
+  /** 'komentar' ditulis orang, 'sistem' dicatat otomatis saat data berubah. */
+  jenis: 'komentar' | 'sistem' | string
+  createdAt: string
+}
+
+/** Lampiran bukti sebuah agenda korporasi. */
+export interface CorpDoc {
+  id: number
+  corpId: number
+  filename: string
+  url: string
+  size: number
+  contentType: string
+  uploadedAt: string
+}
+
+/** Satu agenda / aksi korporasi pada bagan Corporate. */
+export interface Corporate {
+  /** Present only when the agenda comes from the database. */
+  id?: number
+  proyek: ProjectId
+  /** RUPST atau RUPS Biasa. */
+  event: string
+  /** Aksi korporasi yang diputuskan — lihat `CORP_ACTION`. */
+  action: string
+  /** Judul bebas, mis. "RUPST 2026 — pengangkatan direktur operasional". */
+  judul: string
+  /** ISO yyyy-mm-dd tanggal RUPS / efektif aksi. */
+  tgl: string
+  pic: string
+  /** Nilai transaksi/modal dalam rupiah penuh; 0 bila tidak relevan. */
+  nilai: number
+  /** Kendala yang menahan agenda ini — menggantikan kolom "ketergantungan". */
+  kendala: string
+  status: ItemStatus
+  lampiran?: CorpDoc[]
+  komentar?: Komentar[]
 }
 
 /** Satu bidang tanah pada bagan Land Acquisition. */
