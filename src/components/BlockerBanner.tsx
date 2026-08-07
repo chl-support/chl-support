@@ -34,7 +34,7 @@ export function BlockerBanner({ judul, pesan, onOpen }: BlockerBannerProps) {
       </svg>
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: 13, fontWeight: 800, color: '#991B1B', marginBottom: 3 }}>
-          Gerbang pemblokir aktif — {judul}
+          Kendala aktif — {judul}
         </div>
         <div style={{ fontSize: 12.5, fontWeight: 600, color: '#B91C1C' }}>{pesan}</div>
       </div>
@@ -56,7 +56,7 @@ export function BlockerBanner({ judul, pesan, onOpen }: BlockerBannerProps) {
           fontFamily: 'inherit',
         }}
       >
-        Lihat prasyarat
+        Lihat kendala
       </button>
     </div>
   )

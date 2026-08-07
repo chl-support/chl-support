@@ -122,6 +122,6 @@ export const NAV_GROUPS: NavGroup[] = [
 export const CURRENT_USER = {
   nama: 'Willy Susanto',
   inisial: 'WS',
-  jabatan: 'Head of Legal',
+  jabatan: 'Legal',
   notifikasi: 7,
 }

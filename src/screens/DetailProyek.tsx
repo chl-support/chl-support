@@ -55,7 +55,7 @@ export function DetailProyek({
     { k: 'Luas', v: proyekAktif.ha },
     { k: 'Unit', v: proyekAktif.unit + ' unit' },
     { k: 'PEMDA', v: proyekAktif.pemda },
-    { k: 'Head of Legal', v: 'Willy Susanto' },
+    { k: 'Legal', v: 'Willy Susanto' },
   ]
 
   const stat = [

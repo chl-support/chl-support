@@ -4,7 +4,11 @@
  */
 import type {
   AuditDoc,
+  Corporate,
+  CorpDoc,
   Item,
+  Komentar,
+  Land,
   Permit,
   Personel,
   Project,
@@ -158,6 +162,164 @@ export async function savePermit(permit: Permit): Promise<MutateResult> {
 export async function deletePermit(id: number): Promise<MutateResult> {
   try {
     const res = await fetch(`/api/permits?id=${id}`, { method: 'DELETE' })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
+    return { ok: true, id }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
+// ---- Komentar & jejak audit (bersama: agenda korporasi + item) ----
+
+export type CommentEntity = 'corp' | 'item'
+
+export async function fetchComments(
+  entity: CommentEntity,
+  id: number,
+): Promise<Komentar[] | null> {
+  const data = await getJson<{ comments: Komentar[] }>(`/api/comments?entity=${entity}&id=${id}`)
+  return data ? data.comments : null
+}
+
+export async function addComment(
+  entity: CommentEntity,
+  entityId: number,
+  teks: string,
+  aktor?: string,
+): Promise<MutateResult> {
+  try {
+    const res = await fetch('/api/comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ entity, entityId, teks, aktor }),
+    })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
+    return { ok: true, id: data.id }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
+// ---- Lampiran item (dipakai ItemDrawer) ----
+
+export interface Attachment {
+  id: number
+  itemId: number | null
+  url: string
+  filename: string
+  size: number
+  contentType: string
+  createdAt: string
+}
+
+export async function fetchAttachments(itemId: number): Promise<Attachment[] | null> {
+  const data = await getJson<{ attachments: Attachment[] }>(`/api/upload?itemId=${itemId}`)
+  return data ? data.attachments : null
+}
+
+// ---- Corporate (agenda & aksi korporasi) ----
+
+export type CorporateRecord = Corporate & { id: number; lampiran: CorpDoc[]; komentar: Komentar[] }
+
+export async function fetchCorporates(proyek: string): Promise<CorporateRecord[] | null> {
+  const data = await getJson<{ corporates: CorporateRecord[] }>(
+    `/api/corporate?proyek=${encodeURIComponent(proyek)}`,
+  )
+  return data ? data.corporates : null
+}
+
+export async function saveCorporate(
+  corp: Corporate & { aktor?: string },
+): Promise<MutateResult> {
+  try {
+    const res = await fetch('/api/corporate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(corp),
+    })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
+    return { ok: true, id: data.id }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
+export async function deleteCorporate(id: number): Promise<MutateResult> {
+  try {
+    const res = await fetch(`/api/corporate?id=${id}`, { method: 'DELETE' })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
+    return { ok: true, id }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
+/** Unggah satu lampiran bukti untuk sebuah agenda korporasi. */
+export async function uploadCorpDoc(
+  corpId: number,
+  file: File,
+  aktor?: string,
+): Promise<UploadResult> {
+  try {
+    const qs = new URLSearchParams({ corpId: String(corpId), filename: file.name })
+    if (aktor?.trim()) qs.set('aktor', aktor.trim())
+    const res = await fetch(`/api/corporate?${qs.toString()}`, {
+      method: 'POST',
+      headers: { 'Content-Type': file.type || 'application/octet-stream' },
+      body: file,
+    })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
+    return { ok: true, url: data.url, filename: data.filename, size: data.size }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
+export async function deleteCorpDoc(docId: number): Promise<MutateResult> {
+  try {
+    const res = await fetch(`/api/corporate?doc=${docId}`, { method: 'DELETE' })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
+    return { ok: true, id: docId }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
+// ---- Lands (bidang tanah — bagan Land Acquisition) ----
+
+export type LandRecord = Land & { id: number }
+
+export async function fetchLands(proyek: string): Promise<LandRecord[] | null> {
+  const data = await getJson<{ lands: LandRecord[] }>(
+    `/api/lands?proyek=${encodeURIComponent(proyek)}`,
+  )
+  return data ? data.lands : null
+}
+
+export async function saveLand(land: Land): Promise<MutateResult> {
+  try {
+    const res = await fetch('/api/lands', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(land),
+    })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
+    return { ok: true, id: data.id }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
+export async function deleteLand(id: number): Promise<MutateResult> {
+  try {
+    const res = await fetch(`/api/lands?id=${id}`, { method: 'DELETE' })
     const data = await res.json().catch(() => null)
     if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
     return { ok: true, id }

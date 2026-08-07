@@ -49,7 +49,7 @@ export const seedPermits: SeedPermit[] = []
 
 /** Data tim nyata PT Cipta Harmoni Lestari — di-seed sekali saat tabel kosong. */
 export const seedTim: { jabatan: string; nama: string; kontak: string; catatan: string }[] = [
-  { jabatan: 'Head Legal', nama: 'Willy Susanto S.H., M.Kn', kontak: '', catatan: '' },
+  { jabatan: 'Legal', nama: 'Willy Susanto S.H., M.Kn', kontak: '', catatan: '' },
   { jabatan: 'License Perizinan', nama: 'Yudi Sugiharto', kontak: '', catatan: '' },
   { jabatan: 'Collection', nama: 'Agung M. Ramdhani', kontak: '', catatan: '' },
   { jabatan: 'Keuangan', nama: 'Rudy Susanto', kontak: '', catatan: '' },

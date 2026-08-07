@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { put } from '@vercel/blob'
 import { blobToken } from './_lib/env.js'
-import { ensureSchema, getAttachmentData, hasDb, insertAttachment } from './_lib/db.js'
+import { ensureSchema, getAttachmentData, getAttachments, hasDb, insertAttachment } from './_lib/db.js'
 import { fail, methodNotAllowed, readRawBody, sendFile } from './_lib/http.js'
 
 // Keep the raw body intact so we can stream the file to Blob.
@@ -13,11 +13,24 @@ export const config = { api: { bodyParser: false } }
  *   otherwise falls back to keeping the bytes in Neon so uploads still work.
  * GET  /api/upload?download=12
  *   Serves an attachment that was stored in Neon (the fallback path).
+ * GET  /api/upload?itemId=12
+ *   Lists the attachments recorded for one item.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Serve a DB-stored attachment (used when Blob is not connected).
   if (req.method === 'GET') {
     if (!hasDb()) return fail(res, 503, 'Database belum terhubung.')
+    // List the attachments already recorded for one item.
+    if (req.query.itemId != null) {
+      const itemId = Number(req.query.itemId)
+      if (!itemId) return fail(res, 400, 'Param "itemId" tidak valid.')
+      try {
+        await ensureSchema()
+        return res.status(200).json({ ok: true, attachments: await getAttachments(itemId) })
+      } catch (e) {
+        return fail(res, 500, 'Gagal mengambil lampiran.', (e as Error).message)
+      }
+    }
+    // Serve a DB-stored attachment (used when Blob is not connected).
     const id = Number(req.query.download)
     if (!id) return fail(res, 400, 'Param "download" tidak valid.')
     try {

@@ -81,6 +81,73 @@ export async function ensureSchema(): Promise<void> {
       verif     TEXT,
       dok       INTEGER DEFAULT 0
     )`
+  // Agenda korporasi pada bagan Corporate — satu baris per aksi korporasi
+  // (RUPST/RUPS Biasa → perubahan direksi, modal, anggaran dasar, dll).
+  await sql`
+    CREATE TABLE IF NOT EXISTS corporates (
+      id         SERIAL PRIMARY KEY,
+      proyek     TEXT NOT NULL,
+      event      TEXT NOT NULL,
+      action     TEXT NOT NULL,
+      judul      TEXT DEFAULT '',
+      tgl        DATE,
+      pic        TEXT DEFAULT '',
+      nilai      BIGINT DEFAULT 0,
+      kendala    TEXT DEFAULT '',
+      status     TEXT NOT NULL DEFAULT 'Belum Dimulai',
+      created_at TIMESTAMPTZ DEFAULT now(),
+      updated_at TIMESTAMPTZ DEFAULT now()
+    )`
+  await sql`CREATE INDEX IF NOT EXISTS corporates_proyek_idx ON corporates (proyek)`
+
+  // Lampiran bukti tiap agenda korporasi (Blob, dengan cadangan bytes di Neon).
+  await sql`
+    CREATE TABLE IF NOT EXISTS corp_docs (
+      id           SERIAL PRIMARY KEY,
+      corp_id      INTEGER NOT NULL,
+      filename     TEXT NOT NULL,
+      url          TEXT NOT NULL,
+      size         INTEGER DEFAULT 0,
+      content_type TEXT DEFAULT '',
+      data         TEXT,
+      uploaded_at  TIMESTAMPTZ DEFAULT now()
+    )`
+  await sql`CREATE INDEX IF NOT EXISTS corp_docs_corp_idx ON corp_docs (corp_id)`
+
+  // Komentar & jejak audit, dipakai bersama oleh beberapa jenis catatan.
+  // `entity` menyimpan jenisnya ('corp', 'item'), `entity_id` kuncinya.
+  await sql`
+    CREATE TABLE IF NOT EXISTS comments (
+      id         SERIAL PRIMARY KEY,
+      entity     TEXT NOT NULL,
+      entity_id  INTEGER NOT NULL,
+      aktor      TEXT DEFAULT '',
+      teks       TEXT NOT NULL,
+      -- 'komentar' ditulis orang; 'sistem' dicatat otomatis saat data berubah.
+      jenis      TEXT NOT NULL DEFAULT 'komentar',
+      created_at TIMESTAMPTZ DEFAULT now()
+    )`
+  await sql`CREATE INDEX IF NOT EXISTS comments_entity_idx ON comments (entity, entity_id)`
+
+  // Bidang tanah pada bagan Land Acquisition. Tahap & hasil akhir diturunkan
+  // dari kolom "jenis" di frontend, jadi tidak ada kolom turunan di sini.
+  await sql`
+    CREATE TABLE IF NOT EXISTS lands (
+      id         SERIAL PRIMARY KEY,
+      proyek     TEXT NOT NULL,
+      kode       TEXT DEFAULT '',
+      nama       TEXT NOT NULL,
+      pemilik    TEXT DEFAULT '',
+      luas       INTEGER DEFAULT 0,
+      jenis      TEXT NOT NULL,
+      no_dok     TEXT DEFAULT '',
+      status     TEXT NOT NULL DEFAULT 'Belum Dimulai',
+      tgl        DATE,
+      pic        TEXT DEFAULT '',
+      catatan    TEXT DEFAULT '',
+      updated_at TIMESTAMPTZ DEFAULT now()
+    )`
+  await sql`CREATE INDEX IF NOT EXISTS lands_proyek_idx ON lands (proyek)`
   await sql`
     CREATE TABLE IF NOT EXISTS attachments (
       id         SERIAL PRIMARY KEY,
@@ -128,6 +195,12 @@ export async function ensureSchema(): Promise<void> {
       updated_at TIMESTAMPTZ DEFAULT now()
     )`
   await sql`CREATE INDEX IF NOT EXISTS audit_signoffs_doc_idx ON audit_signoffs (doc_id, urut)`
+
+  // Divisi "Head Legal" dinamai ulang menjadi "Legal" — samakan data yang sudah
+  // tersimpan (alur tanda tangan & direktori tim) agar labelnya konsisten di
+  // seluruh aplikasi. Keduanya idempoten, jadi aman dijalankan tiap request.
+  await sql`UPDATE audit_signoffs SET divisi='Legal' WHERE divisi='Head Legal'`
+  await sql`UPDATE tim SET jabatan='Legal' WHERE jabatan IN ('Head Legal', 'Head of Legal')`
 
   // Fallback storage: when Vercel Blob is not connected, the file bytes are kept
   // (base64) in these columns so uploads still work with only Neon configured.
@@ -240,11 +313,19 @@ export async function upsertProject(p: {
   return r.id
 }
 
-/** Removes a project and everything scoped to it (items + permits). */
+/** Removes a project and everything scoped to it (items, permits, lands, corporate). */
 export async function deleteProject(id: string): Promise<void> {
   const sql = db()
   await sql`DELETE FROM items WHERE proyek=${id}`
   await sql`DELETE FROM permits WHERE proyek=${id}`
+  await sql`DELETE FROM lands WHERE proyek=${id}`
+  // Evidence and audit trail hang off the agenda rows, so clear them first.
+  await sql`
+    DELETE FROM corp_docs WHERE corp_id IN (SELECT id FROM corporates WHERE proyek=${id})`
+  await sql`
+    DELETE FROM comments WHERE entity='corp'
+      AND entity_id IN (SELECT id FROM corporates WHERE proyek=${id})`
+  await sql`DELETE FROM corporates WHERE proyek=${id}`
   await sql`DELETE FROM projects WHERE id=${id}`
 }
 
@@ -309,6 +390,331 @@ export async function upsertPermit(p: {
 
 export async function deletePermit(id: number): Promise<void> {
   await db()`DELETE FROM permits WHERE id=${id}`
+}
+
+// ---- Komentar & jejak audit (dipakai bersama beberapa entitas) ----
+
+export interface CommentRow {
+  id: number
+  entity: string
+  entityId: number
+  aktor: string
+  teks: string
+  jenis: string
+  createdAt: string
+}
+
+const toComment = (r: Record<string, unknown>): CommentRow => ({
+  id: Number(r.id),
+  entity: String(r.entity ?? ''),
+  entityId: Number(r.entity_id),
+  aktor: String(r.aktor ?? ''),
+  teks: String(r.teks ?? ''),
+  jenis: String(r.jenis ?? 'komentar'),
+  createdAt: r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at ?? ''),
+})
+
+export async function getComments(entity: string, entityId: number): Promise<CommentRow[]> {
+  const sql = db()
+  const rows = (await sql`
+    SELECT * FROM comments WHERE entity=${entity} AND entity_id=${entityId}
+    ORDER BY created_at DESC, id DESC`) as Record<string, unknown>[]
+  return rows.map(toComment)
+}
+
+/** Every comment for a set of ids, grouped — avoids one query per record. */
+async function getCommentsByEntity(entity: string): Promise<Map<number, CommentRow[]>> {
+  const sql = db()
+  const rows = (await sql`
+    SELECT * FROM comments WHERE entity=${entity}
+    ORDER BY created_at DESC, id DESC`) as Record<string, unknown>[]
+  const map = new Map<number, CommentRow[]>()
+  for (const r of rows) {
+    const c = toComment(r)
+    const list = map.get(c.entityId)
+    if (list) list.push(c)
+    else map.set(c.entityId, [c])
+  }
+  return map
+}
+
+export async function insertComment(c: {
+  entity: string
+  entityId: number
+  aktor?: string
+  teks: string
+  jenis?: string
+}): Promise<number> {
+  const sql = db()
+  const [r] = (await sql`
+    INSERT INTO comments (entity, entity_id, aktor, teks, jenis)
+    VALUES (${c.entity}, ${c.entityId}, ${c.aktor ?? ''}, ${c.teks}, ${c.jenis ?? 'komentar'})
+    RETURNING id`) as { id: number }[]
+  return r.id
+}
+
+export async function deleteComment(id: number): Promise<void> {
+  await db()`DELETE FROM comments WHERE id=${id}`
+}
+
+// ---- Corporate — agenda & aksi korporasi ----
+
+export interface CorpDocRow {
+  id: number
+  corpId: number
+  filename: string
+  url: string
+  size: number
+  contentType: string
+  uploadedAt: string
+}
+
+export interface CorporateRow {
+  id: number
+  proyek: string
+  event: string
+  action: string
+  judul: string
+  tgl: string
+  pic: string
+  nilai: number
+  kendala: string
+  status: string
+  createdAt: string
+  lampiran: CorpDocRow[]
+  komentar: CommentRow[]
+}
+
+function toCorpDoc(r: Record<string, unknown>): CorpDocRow {
+  const id = Number(r.id)
+  const stored = String(r.url ?? '')
+  return {
+    id,
+    corpId: Number(r.corp_id),
+    filename: String(r.filename ?? ''),
+    // Blob-hosted files carry an absolute URL; DB-stored files get a download route.
+    url: stored || `/api/corporate?download=${id}`,
+    size: Number(r.size ?? 0),
+    contentType: String(r.content_type ?? ''),
+    uploadedAt: r.uploaded_at instanceof Date ? r.uploaded_at.toISOString() : String(r.uploaded_at ?? ''),
+  }
+}
+
+export async function getCorporates(proyek?: string): Promise<CorporateRow[]> {
+  const sql = db()
+  const [rows, docs, komentar] = await Promise.all([
+    (proyek
+      ? sql`SELECT * FROM corporates WHERE proyek=${proyek} ORDER BY tgl DESC NULLS LAST, id DESC`
+      : sql`SELECT * FROM corporates ORDER BY proyek, tgl DESC NULLS LAST, id DESC`) as Promise<
+      Record<string, unknown>[]
+    >,
+    sql`SELECT * FROM corp_docs ORDER BY uploaded_at DESC, id DESC` as Promise<
+      Record<string, unknown>[]
+    >,
+    getCommentsByEntity('corp'),
+  ])
+  const byCorp = new Map<number, CorpDocRow[]>()
+  for (const r of docs) {
+    const d = toCorpDoc(r)
+    const list = byCorp.get(d.corpId)
+    if (list) list.push(d)
+    else byCorp.set(d.corpId, [d])
+  }
+  return rows.map((r) => {
+    const id = Number(r.id)
+    return {
+      id,
+      proyek: String(r.proyek ?? ''),
+      event: String(r.event ?? ''),
+      action: String(r.action ?? ''),
+      judul: String(r.judul ?? ''),
+      tgl: r.tgl ? isoDate(r.tgl) : '',
+      pic: String(r.pic ?? ''),
+      nilai: Number(r.nilai ?? 0),
+      kendala: String(r.kendala ?? ''),
+      status: String(r.status ?? 'Belum Dimulai'),
+      createdAt: r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at ?? ''),
+      lampiran: byCorp.get(id) ?? [],
+      komentar: komentar.get(id) ?? [],
+    }
+  })
+}
+
+/** Status & kendala sebelum perubahan — dipakai untuk menulis jejak audit. */
+export async function getCorporateState(
+  id: number,
+): Promise<{ status: string; kendala: string } | null> {
+  const sql = db()
+  const [r] = (await sql`SELECT status, kendala FROM corporates WHERE id=${id}`) as {
+    status: string
+    kendala: string
+  }[]
+  return r ? { status: String(r.status ?? ''), kendala: String(r.kendala ?? '') } : null
+}
+
+export async function upsertCorporate(c: {
+  id?: number
+  proyek: string
+  event: string
+  action: string
+  judul?: string
+  tgl?: string | null
+  pic?: string
+  nilai?: number
+  kendala?: string
+  status?: string
+}): Promise<number> {
+  const sql = db()
+  const judul = c.judul ?? ''
+  const tgl = c.tgl || null
+  const pic = c.pic ?? ''
+  const nilai = c.nilai ?? 0
+  const kendala = c.kendala ?? ''
+  const status = c.status ?? 'Belum Dimulai'
+  if (c.id) {
+    const [r] = (await sql`
+      UPDATE corporates SET proyek=${c.proyek}, event=${c.event}, action=${c.action}, judul=${judul},
+        tgl=${tgl}, pic=${pic}, nilai=${nilai}, kendala=${kendala}, status=${status}, updated_at=now()
+      WHERE id=${c.id} RETURNING id`) as { id: number }[]
+    return r?.id ?? 0
+  }
+  const [r] = (await sql`
+    INSERT INTO corporates (proyek, event, action, judul, tgl, pic, nilai, kendala, status)
+    VALUES (${c.proyek}, ${c.event}, ${c.action}, ${judul}, ${tgl}, ${pic}, ${nilai}, ${kendala}, ${status})
+    RETURNING id`) as { id: number }[]
+  return r.id
+}
+
+/** Removes an agenda together with its evidence and its audit trail. */
+export async function deleteCorporate(id: number): Promise<void> {
+  const sql = db()
+  await sql`DELETE FROM corp_docs WHERE corp_id=${id}`
+  await sql`DELETE FROM comments WHERE entity='corp' AND entity_id=${id}`
+  await sql`DELETE FROM corporates WHERE id=${id}`
+}
+
+export async function insertCorpDoc(d: {
+  corpId: number
+  filename: string
+  url: string
+  size: number
+  contentType: string
+  data?: string | null
+}): Promise<number> {
+  const sql = db()
+  const [r] = (await sql`
+    INSERT INTO corp_docs (corp_id, filename, url, size, content_type, data)
+    VALUES (${d.corpId}, ${d.filename}, ${d.url}, ${d.size}, ${d.contentType}, ${d.data ?? null})
+    RETURNING id`) as { id: number }[]
+  return r.id
+}
+
+export async function getCorpDocUrl(id: number): Promise<string | null> {
+  const sql = db()
+  const [r] = (await sql`SELECT url FROM corp_docs WHERE id=${id}`) as { url: string }[]
+  return r?.url ?? null
+}
+
+/** Bytes + metadata for a DB-stored evidence file, or null when it lives in Blob. */
+export async function getCorpDocData(
+  id: number,
+): Promise<{ data: string; filename: string; contentType: string } | null> {
+  const sql = db()
+  const [r] = (await sql`
+    SELECT data, filename, content_type FROM corp_docs WHERE id=${id}`) as {
+    data: string | null
+    filename: string
+    content_type: string
+  }[]
+  if (!r || !r.data) return null
+  return { data: r.data, filename: r.filename, contentType: r.content_type || 'application/octet-stream' }
+}
+
+export async function deleteCorpDoc(id: number): Promise<void> {
+  await db()`DELETE FROM corp_docs WHERE id=${id}`
+}
+
+// ---- Land Acquisition — bidang tanah ----
+
+export interface LandRow {
+  id: number
+  proyek: string
+  kode: string
+  nama: string
+  pemilik: string
+  luas: number
+  jenis: string
+  noDok: string
+  status: string
+  tgl: string
+  pic: string
+  catatan: string
+}
+
+export async function getLands(proyek?: string): Promise<LandRow[]> {
+  const sql = db()
+  const rows = (
+    proyek
+      ? await sql`SELECT * FROM lands WHERE proyek=${proyek} ORDER BY kode, id`
+      : await sql`SELECT * FROM lands ORDER BY proyek, kode, id`
+  ) as Record<string, unknown>[]
+  return rows.map((r) => ({
+    id: Number(r.id),
+    proyek: String(r.proyek ?? ''),
+    kode: String(r.kode ?? ''),
+    nama: String(r.nama ?? ''),
+    pemilik: String(r.pemilik ?? ''),
+    luas: Number(r.luas ?? 0),
+    jenis: String(r.jenis ?? ''),
+    noDok: String(r.no_dok ?? ''),
+    status: String(r.status ?? 'Belum Dimulai'),
+    tgl: r.tgl ? isoDate(r.tgl) : '',
+    pic: String(r.pic ?? ''),
+    catatan: String(r.catatan ?? ''),
+  }))
+}
+
+export async function upsertLand(p: {
+  id?: number
+  proyek: string
+  kode?: string
+  nama: string
+  pemilik?: string
+  luas?: number
+  jenis: string
+  noDok?: string
+  status?: string
+  tgl?: string | null
+  pic?: string
+  catatan?: string
+}): Promise<number> {
+  const sql = db()
+  const kode = p.kode ?? ''
+  const pemilik = p.pemilik ?? ''
+  const luas = p.luas ?? 0
+  const noDok = p.noDok ?? ''
+  const status = p.status ?? 'Belum Dimulai'
+  const tgl = p.tgl || null
+  const pic = p.pic ?? ''
+  const catatan = p.catatan ?? ''
+  if (p.id) {
+    const [r] = (await sql`
+      UPDATE lands SET proyek=${p.proyek}, kode=${kode}, nama=${p.nama}, pemilik=${pemilik},
+        luas=${luas}, jenis=${p.jenis}, no_dok=${noDok}, status=${status}, tgl=${tgl},
+        pic=${pic}, catatan=${catatan}, updated_at=now()
+      WHERE id=${p.id} RETURNING id`) as { id: number }[]
+    return r?.id ?? 0
+  }
+  const [r] = (await sql`
+    INSERT INTO lands (proyek, kode, nama, pemilik, luas, jenis, no_dok, status, tgl, pic, catatan)
+    VALUES (${p.proyek}, ${kode}, ${p.nama}, ${pemilik}, ${luas}, ${p.jenis}, ${noDok},
+            ${status}, ${tgl}, ${pic}, ${catatan})
+    RETURNING id`) as { id: number }[]
+  return r.id
+}
+
+export async function deleteLand(id: number): Promise<void> {
+  await db()`DELETE FROM lands WHERE id=${id}`
 }
 
 // ---- Tim (menu Catatan/direktori) ----
@@ -607,6 +1013,41 @@ export async function insertAttachment(a: {
     VALUES (${a.itemId}, ${a.url}, ${a.filename}, ${a.size}, ${a.contentType ?? ''}, ${a.data ?? null})
     RETURNING id`) as { id: number }[]
   return r.id
+}
+
+export interface AttachmentRow {
+  id: number
+  itemId: number | null
+  url: string
+  filename: string
+  size: number
+  contentType: string
+  createdAt: string
+}
+
+/** Attachments recorded for one item, newest first. */
+export async function getAttachments(itemId: number): Promise<AttachmentRow[]> {
+  const sql = db()
+  const rows = (await sql`
+    SELECT id, item_id, url, filename, size, content_type, created_at
+    FROM attachments WHERE item_id=${itemId} ORDER BY created_at DESC, id DESC`) as Record<
+    string,
+    unknown
+  >[]
+  return rows.map((r) => {
+    const id = Number(r.id)
+    const stored = String(r.url ?? '')
+    return {
+      id,
+      itemId: r.item_id == null ? null : Number(r.item_id),
+      // Blob-hosted files carry an absolute URL; DB-stored files get a download route.
+      url: stored || `/api/upload?download=${id}`,
+      filename: String(r.filename ?? ''),
+      size: Number(r.size ?? 0),
+      contentType: String(r.content_type ?? ''),
+      createdAt: r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at ?? ''),
+    }
+  })
 }
 
 /** Bytes + metadata for a DB-stored attachment, or null when it lives in Blob. */

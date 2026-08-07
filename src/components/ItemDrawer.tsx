@@ -1,43 +1,56 @@
-import { useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { A, C, STEPS } from '@/data/constants'
 import { fmtTgl } from '@/lib/format'
-import { uploadFile } from '@/lib/api'
+import { fetchAttachments, uploadFile, type Attachment } from '@/lib/api'
 import type { Row } from '@/lib/rows'
-
-interface Uploaded {
-  nama: string
-  url: string
-  size: number
-}
+import { CommentThread } from './CommentThread'
 
 const fmtSize = (n: number): string =>
   n >= 1_000_000 ? (n / 1_000_000).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1000)) + ' KB'
+
+function fmtWaktu(iso: string): string {
+  if (!iso) return 'baru saja'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return 'baru saja'
+  return d.toLocaleString('id-ID', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
 
 interface ItemDrawerProps {
   row: Row
   onClose: () => void
 }
 
-interface Lampiran {
-  nama: string
-  meta: string
-  ext: string
-  warna: string
-}
-
 /**
  * The 480px right-hand drawer: verification stepper, read-only form, evidence,
- * dependencies and the audit trail. Blocked items get a red banner and both
- * primary actions disabled.
+ * blockers and the audit trail. Evidence and the trail are read from the
+ * database for this item — nothing here is sample data. Blocked items get a red
+ * banner and both primary actions disabled.
  */
 export function ItemDrawer({ row, onClose }: ItemDrawerProps) {
   const isBlocked = row.blocked
   const cur = Math.max(0, STEPS.indexOf(row.status as (typeof STEPS)[number]))
 
+  const itemId = row.item.id
   const fileRef = useRef<HTMLInputElement>(null)
-  const [uploads, setUploads] = useState<Uploaded[]>([])
+  const [lampiran, setLampiran] = useState<Attachment[]>([])
   const [uploading, setUploading] = useState(false)
   const [uploadErr, setUploadErr] = useState<string | null>(null)
+
+  const reloadLampiran = useCallback(async () => {
+    if (!itemId) return
+    const data = await fetchAttachments(itemId)
+    if (data) setLampiran(data)
+  }, [itemId])
+
+  useEffect(() => {
+    reloadLampiran()
+  }, [reloadLampiran])
 
   async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -45,12 +58,9 @@ export function ItemDrawer({ row, onClose }: ItemDrawerProps) {
     if (!file) return
     setUploading(true)
     setUploadErr(null)
-    const res = await uploadFile(file, row.item.id)
-    if (res.ok && res.url) {
-      setUploads((u) => [{ nama: res.filename ?? file.name, url: res.url!, size: res.size ?? file.size }, ...u])
-    } else {
-      setUploadErr(res.error ?? 'Upload gagal.')
-    }
+    const res = await uploadFile(file, itemId)
+    if (res.ok) await reloadLampiran()
+    else setUploadErr(res.error ?? 'Upload gagal.')
     setUploading(false)
   }
 
@@ -63,68 +73,6 @@ export function ItemDrawer({ row, onClose }: ItemDrawerProps) {
     { label: 'TARGET', v: row.tglTxt },
     { label: 'KEDALUWARSA', v: row.status === 'Selesai' ? '—' : fmtTgl(row.tgl) },
     { label: 'NILAI', v: row.nilaiTxt, wide: true },
-  ]
-
-  const lampiran: Lampiran[] =
-    row.dok > 0
-      ? [
-          {
-            nama: 'Berita acara ' + row.kode + '.pdf',
-            meta: '1,8 MB · diunggah ' + row.pic + ' · 02 Agu 2026',
-            ext: 'PDF',
-            warna: C.late,
-          },
-          {
-            nama: 'Lampiran teknis & lampiran ukur.xlsx',
-            meta: '640 KB · diunggah ' + row.pic + ' · 29 Jul 2026',
-            ext: 'XLS',
-            warna: C.done,
-          },
-          {
-            nama: 'Surat pengantar divisi.docx',
-            meta: '212 KB · diunggah ' + row.pic + ' · 27 Jul 2026',
-            ext: 'DOC',
-            warna: C.run,
-          },
-        ].slice(0, Math.min(3, row.dok))
-      : []
-
-  const deps = isBlocked
-    ? [
-        { nama: 'Siteplan definitif 320 unit', status: 'Berjalan', warna: C.run },
-        { nama: 'PBG tahap 1 — 96 unit', status: 'Terkunci', warna: C.idle },
-        { nama: 'Balik nama SHM → SHGB', status: 'Menunggu Pihak Ketiga', warna: C.due },
-      ]
-    : [
-        { nama: 'Persetujuan Lingkungan (UKL-UPL)', status: 'Menunggu Verifikasi', warna: C.verif },
-        { nama: 'PTP — Persetujuan Teknis Pertanahan', status: 'Selesai', warna: C.done },
-      ]
-
-  const audit = [
-    {
-      aktor: row.pic,
-      waktu: '04 Agu 2026 · 14:22',
-      teks: 'Bukti dokumen tahap 2 diunggah. Mohon verifikasi sebelum tenggat.',
-      warna: A,
-    },
-    {
-      aktor: row.verif,
-      waktu: '03 Agu 2026 · 09:41',
-      teks: 'Dikembalikan — lampiran ukur belum ditandatangani surveyor.',
-      warna: C.late,
-    },
-    {
-      aktor: row.pic,
-      waktu: '01 Agu 2026 · 16:08',
-      teks: 'Status diubah dari Belum Dimulai ke Berjalan.',
-      warna: C.run,
-    },
-    {
-      aktor: 'Sistem',
-      waktu: '28 Jul 2026 · 08:00',
-      teks: 'Item dibuat otomatis dari template checklist divisi.',
-      warna: '#9CA3AF',
-    },
   ]
 
   const actionBase: CSSProperties = {
@@ -265,7 +213,7 @@ export function ItemDrawer({ row, onClose }: ItemDrawerProps) {
               </svg>
               <div>
                 <div style={{ fontSize: 12.5, fontWeight: 800, color: '#991B1B', marginBottom: 3 }}>
-                  Diblokir oleh gerbang prasyarat
+                  Item ini terkendala
                 </div>
                 <div style={{ fontSize: 12, fontWeight: 600, color: '#B91C1C', textWrap: 'pretty' }}>
                   {row.blockReason}
@@ -439,10 +387,10 @@ export function ItemDrawer({ row, onClose }: ItemDrawerProps) {
               </div>
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-              {uploads.map((u) => (
+              {lampiran.map((l) => (
                 <a
-                  key={u.url}
-                  href={u.url}
+                  key={l.id}
+                  href={l.url}
                   target="_blank"
                   rel="noreferrer"
                   className="hc-attach"
@@ -451,9 +399,8 @@ export function ItemDrawer({ row, onClose }: ItemDrawerProps) {
                     alignItems: 'center',
                     gap: 10,
                     padding: '9px 11px',
-                    border: '1px solid ' + C.done + '55',
+                    border: '1px solid #E5E7EB',
                     borderRadius: 9,
-                    background: C.done + '0C',
                     textDecoration: 'none',
                   }}
                 >
@@ -468,11 +415,11 @@ export function ItemDrawer({ row, onClose }: ItemDrawerProps) {
                       justifyContent: 'center',
                       fontSize: 9.5,
                       fontWeight: 800,
-                      color: C.done,
-                      background: C.done + '1A',
+                      color: A,
+                      background: A + '14',
                     }}
                   >
-                    NEW
+                    {(l.filename.split('.').pop() ?? 'FILE').slice(0, 4).toUpperCase()}
                   </span>
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span
@@ -486,78 +433,15 @@ export function ItemDrawer({ row, onClose }: ItemDrawerProps) {
                         textOverflow: 'ellipsis',
                       }}
                     >
-                      {u.nama}
+                      {l.filename}
                     </span>
-                    <span style={{ display: 'block', fontSize: 10.5, fontWeight: 600, color: '#6B7280' }}>
-                      {fmtSize(u.size)} · tersimpan di Blob · baru saja
+                    <span style={{ display: 'block', fontSize: 10.5, fontWeight: 600, color: '#9CA3AF' }}>
+                      {fmtSize(l.size)} · {fmtWaktu(l.createdAt)}
                     </span>
                   </span>
                 </a>
               ))}
-              {lampiran.map((l) => (
-                <div
-                  key={l.nama}
-                  className="hc-attach"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    padding: '9px 11px',
-                    border: '1px solid #E5E7EB',
-                    borderRadius: 9,
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 34,
-                      height: 34,
-                      flex: 'none',
-                      borderRadius: 8,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 9.5,
-                      fontWeight: 800,
-                      color: l.warna,
-                      background: l.warna + '14',
-                    }}
-                  >
-                    {l.ext}
-                  </span>
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span
-                      style={{
-                        display: 'block',
-                        fontSize: 12.5,
-                        fontWeight: 700,
-                        color: '#111827',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
-                      {l.nama}
-                    </span>
-                    <span style={{ display: 'block', fontSize: 10.5, fontWeight: 600, color: '#9CA3AF' }}>
-                      {l.meta}
-                    </span>
-                  </span>
-                  <svg
-                    width="15"
-                    height="15"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#9CA3AF"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    style={{ flex: 'none' }}
-                  >
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-                  </svg>
-                </div>
-              ))}
-              {row.dok === 0 && uploads.length === 0 && (
+              {lampiran.length === 0 && (
                 <div
                   style={{
                     padding: 16,
@@ -575,7 +459,7 @@ export function ItemDrawer({ row, onClose }: ItemDrawerProps) {
             </div>
           </div>
 
-          {/* ---- dependencies ---- */}
+          {/* ---- blockers ---- */}
           <div style={{ padding: '0 20px 20px' }}>
             <div
               style={{
@@ -586,31 +470,27 @@ export function ItemDrawer({ row, onClose }: ItemDrawerProps) {
                 marginBottom: 10,
               }}
             >
-              KETERGANTUNGAN
+              KENDALA
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {deps.map((dp) => (
-                <div
-                  key={dp.nama}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 9,
-                    padding: '8px 11px',
-                    background: '#F7F8FA',
-                    borderRadius: 8,
-                  }}
-                >
-                  <span
-                    style={{ width: 7, height: 7, borderRadius: '50%', flex: 'none', background: dp.warna }}
-                  />
-                  <span style={{ flex: 1, fontSize: 12.5, fontWeight: 700, color: '#111827' }}>
-                    {dp.nama}
-                  </span>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: dp.warna }}>{dp.status}</span>
-                </div>
-              ))}
-            </div>
+            {row.blockReason ? (
+              <div
+                style={{
+                  padding: '9px 12px',
+                  borderRadius: 9,
+                  background: '#FEF2F2',
+                  border: '1px solid #FECACA',
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  color: '#B91C1C',
+                }}
+              >
+                {row.blockReason}
+              </div>
+            ) : (
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF' }}>
+                Tidak ada kendala tercatat pada item ini.
+              </div>
+            )}
           </div>
 
           {/* ---- audit trail ---- */}
@@ -626,80 +506,13 @@ export function ItemDrawer({ row, onClose }: ItemDrawerProps) {
             >
               KOMENTAR &amp; JEJAK AUDIT
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-              {audit.map((a, n) => (
-                <div key={a.waktu} style={{ display: 'flex', gap: 11 }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      flex: 'none',
-                      width: 26,
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: 9,
-                        height: 9,
-                        borderRadius: '50%',
-                        marginTop: 5,
-                        flex: 'none',
-                        background: a.warna,
-                      }}
-                    />
-                    {n < audit.length - 1 && (
-                      <span style={{ flex: 1, width: 1, background: '#E5E7EB', minHeight: 14 }} />
-                    )}
-                  </div>
-                  <div style={{ flex: 1, paddingBottom: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 2 }}>
-                      <span style={{ fontSize: 12.5, fontWeight: 800, color: '#111827' }}>{a.aktor}</span>
-                      <span style={{ fontSize: 10.5, fontWeight: 600, color: '#9CA3AF' }}>{a.waktu}</span>
-                    </div>
-                    <div style={{ fontSize: 12.5, fontWeight: 600, color: '#374151', textWrap: 'pretty' }}>
-                      {a.teks}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
-              <input
-                className="hc-input"
-                placeholder="Tulis komentar untuk verifikator…"
-                style={{
-                  flex: 1,
-                  height: 36,
-                  padding: '0 12px',
-                  border: '1px solid #E5E7EB',
-                  borderRadius: 9,
-                  outline: 0,
-                  fontFamily: 'inherit',
-                  fontSize: 12.5,
-                  fontWeight: 600,
-                  color: '#111827',
-                }}
-              />
-              <button
-                type="button"
-                className="hc-outline"
-                style={{
-                  height: 36,
-                  padding: '0 14px',
-                  border: '1px solid #E5E7EB',
-                  background: '#fff',
-                  borderRadius: 9,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: A,
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                }}
-              >
-                Kirim
-              </button>
-            </div>
+            {itemId ? (
+              <CommentThread entity="item" entityId={itemId} />
+            ) : (
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF' }}>
+                Item ini belum tersimpan di database, jadi belum punya jejak audit.
+              </div>
+            )}
           </div>
         </div>
 

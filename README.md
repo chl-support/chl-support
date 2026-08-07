@@ -20,20 +20,74 @@ npm run typecheck
 | --- | --- |
 | **Dashboard Eksekutif** | 6 KPI · matriks proyek × 6 modul · kalender kepatuhan 90 hari · tabel "Perlu perhatian Anda" |
 | **Detail Proyek** | Header proyek · 7 tab modul · sub-tab Jangka Pendek/Panjang · filter status · BlockerBanner |
+| **Corporate** | Agenda RUPS & aksi korporasi · 6 KPI · filter event/action · lampiran bukti · kendala · jejak audit |
 | **Document & License** | Bagan izin bertahap 4 fase (Pra-Akuisisi → Serah Terima) · CRUD izin per proyek · progress per fase |
+| **Land Acquisition** | Status sertifikasi bidang tanah · 2 tahap × 2 jalur · 5 KPI · CRUD bidang per proyek |
 | **Feasibility & Initial Cost** | KPI NPV/IRR/Payback/Margin/BEP/Peak Cash · kurva kas kumulatif · sensitivitas · 11 tahap initial cost |
-| **ItemDrawer** | Panel 480px: stepper verifikasi · form · lampiran · ketergantungan · jejak audit |
+| **ItemDrawer** | Panel 480px: stepper verifikasi · form · lampiran nyata · kendala · komentar & jejak audit |
 | **Internal Audit** | Unggah dokumen · 5 KPI alur · filter status · stepper tanda tangan bertahap antar divisi |
 
 Modul P2 (Finance & Correspondence, Pengaturan) menampilkan `ModulKosong` — strukturnya identik
 dengan modul lain, jadi tidak ada komponen baru yang perlu dirancang.
 
+### Agenda korporasi (Corporate)
+
+Susunan dasar tiap baris (`src/data/corporate.ts`):
+
+| Kolom | Isi |
+| --- | --- |
+| **Event** | RUPST · RUPS Biasa |
+| **Action** | Perubahan Direksi · Komisaris · Pemegang Saham · Anggaran Dasar · KBLI · Modal · Corporate Action Lainnya |
+| **Tanggal · PIC · Nilai** | Tanggal RUPS/efektif, penanggung jawab, nilai transaksi (rupiah penuh, 0 bila tidak relevan) |
+| **Lampiran bukti** | Berkas nyata di Blob (cadangan Neon) — dialog menampilkan bukti yang lazim per action |
+| **Kendala** | Menggantikan kolom "ketergantungan": hambatan di bagan Corporate sendiri |
+| **Komentar & jejak audit** | Lini masa gabungan komentar orang + catatan sistem |
+
+**Kendala, bukan ketergantungan.** Kolom ketergantungan sebelumnya menayangkan rantai izin
+(siteplan, PBG, balik nama SHGB) di semua modul — konteks Document & License yang tidak nyambung
+dengan urusan korporasi. Sekarang yang dicatat adalah kendala milik bagan itu sendiri: agenda
+korporasi punya field `kendala`, dan `ItemDrawer` menampilkan `blockReason` item yang dibuka.
+
+**Jejak audit yang nyata.** Komentar dan jejak audit tersimpan di tabel `comments`
+(`entity` + `entity_id`), dipakai bersama bagan Corporate dan item proyek lewat komponen
+`CommentThread`. Entri `sistem` ditulis backend saat agenda dibuat, statusnya berubah, kendalanya
+berubah, atau bukti diunggah; entri `komentar` ditulis pengguna. Contoh dummy di `ItemDrawer`
+(lampiran, ketergantungan, dan jejak audit karangan) sudah dihapus — seluruh isinya kini dibaca
+dari database untuk item yang bersangkutan.
+
+### Status sertifikasi tanah (Land Acquisition)
+
+Layar ini menayangkan posisi sertifikat tiap **bidang tanah** dalam dua tahap; tiap tahap punya
+dua jalur, dan tiap jalur satu hasil akhir yang tetap (`src/data/lands.ts`):
+
+| Tahap | Jalur | Hasil |
+| --- | --- | --- |
+| **Akuisisi** — perolehan PT | Tanah Girik | Penerbitan Sertifikat |
+| | Tanah Sertifikat | Balik Nama PT |
+| **Pasca Akuisisi** — pelepasan PT kepada konsumen | Sertifikat Hak Guna Bangunan | Siap AJB |
+| | Sertifikat Hak Milik | Siap AJB |
+
+Hasil tidak disimpan di database — selalu diturunkan dari jenis bidangnya lewat `hasilDari()`,
+jadi satu bidang tidak bisa berada di jalur dan hasil yang tidak cocok. Tiap bidang membawa kode,
+letak, luas, pemilik/atas nama, nomor girik/sertifikat, status (memakai palet status yang sama
+dengan modul lain), target, PIC, dan catatan. Bidang yang lewat target memunculkan chip
+Terlambat, dan KPI di atas merangkum jumlah bidang, total luas, perolehan PT yang tuntas, bidang
+siap AJB, serta yang lewat target.
+
 ### Monitoring tanda tangan (Internal Audit)
 
 Tiap dokumen membawa **alur tanda tangan**: satu langkah per divisi, dikerjakan **berurutan**.
-Alur baku `Admin Sales → License & Perizinan → Collection → Keuangan → Head Legal → Direksi`
-(diatur di `src/data/divisi.ts`) bisa disusun ulang saat mengunggah, dan tiap dokumen masih bisa
-ditambah/dikurangi divisinya kemudian.
+Alur baku (diatur di `src/data/divisi.ts`) menyusun sembilan divisi dalam tiga kelompok:
+
+| Kelompok | Divisi |
+| --- | --- |
+| Penyiapan dokumen | Admin Proyek → Marketing → Marcom → Admin Sales |
+| Pemeriksaan | License & Perizinan → Collection → Keuangan → Legal |
+| Pengesahan | Direksi |
+
+Urutannya bisa disusun ulang saat mengunggah (klik chip divisi sesuai urutan yang dikehendaki;
+divisi yang tidak relevan tinggal dilepas), dan tiap dokumen masih bisa ditambah/dikurangi
+divisinya kemudian lewat stepper.
 
 Status per langkah: `Menunggu → Diproses → Ditandatangani`, dengan cabang `Revisi` (dikembalikan
 ke pengunggah beserta alasannya) dan `Dilewati` (divisi tidak relevan untuk dokumen itu). Hanya
@@ -58,7 +112,7 @@ src/
                 ringkasan alur tanda tangan (signoff.ts)
   components/   DataTable, ItemDrawer, DependencyChain, ProjectMatrix, ComplianceCalendar,
                 CashCurve, KpiCard, BlockerBanner, EmptyState, Sidebar, Topbar, PillButton,
-                SignoffStepper
+                SignoffStepper, CommentThread, CorporateDialog, LandDialog
   screens/      Empat layar P0 + ModulKosong
   styles/       global.css — token aplikasi, reset, dan seluruh state hover/focus
 project/        Bundel handoff Claude Design (sumber desain + design system)
@@ -99,8 +153,11 @@ jadi app tetap jalan meski satu pun resource belum dikonfigurasi.
 | `GET /api/bootstrap` | Buat skema + seed data (sekali), lalu kembalikan projects/items/permits dari Neon |
 | `GET·POST·DELETE /api/projects` | Menu **Proyek** — CRUD proyek (hapus ikut membersihkan item & izinnya) |
 | `GET·POST·DELETE /api/permits` | Menu **Perizinan** — CRUD izin per proyek, dikelompokkan 4 fase |
+| `GET·POST·DELETE /api/corporate` | Bagan **Corporate** — CRUD agenda korporasi, unggah/hapus lampiran bukti |
+| `GET·POST·DELETE /api/comments` | Komentar & jejak audit (`entity` = `corp` / `item`) |
+| `GET·POST·DELETE /api/lands` | Bagan **Land Acquisition** — CRUD bidang tanah per proyek |
 | `GET·POST /api/items` | Baca / buat / ubah item di Neon |
-| `POST /api/upload?filename=…&itemId=…` | Unggah lampiran ke Blob (body = isi berkas) |
+| `GET·POST /api/upload` | Unggah lampiran item ke Blob (`?filename=…&itemId=…`) · daftar lampiran (`?itemId=…`) |
 | `POST /api/ai` | Asisten AI (OpenAI) — body `{ prompt, context? }` |
 | `GET·POST·DELETE /api/tim` | Menu **Tim** — CRUD direktori jabatan/PIC di Neon |
 | `GET·POST·PATCH·DELETE /api/audit` | Menu **Internal Audit** — unggah dokumen ke Blob + alur tanda tangan lintas divisi di Neon |
