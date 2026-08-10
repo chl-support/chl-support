@@ -133,6 +133,25 @@ export async function ensureSchema(): Promise<void> {
     )`
   await sql`CREATE INDEX IF NOT EXISTS kpr_followup_kpr_idx ON kpr_followup (kpr_id)`
 
+  // Arsip laporan Collection — rekap follow-up/reminder yang diunggah tim,
+  // berkasnya di Blob dengan cadangan bytes di Neon.
+  await sql`
+    CREATE TABLE IF NOT EXISTS kpr_reports (
+      id           SERIAL PRIMARY KEY,
+      proyek       TEXT NOT NULL,
+      judul        TEXT DEFAULT '',
+      periode      TEXT DEFAULT '',
+      filename     TEXT NOT NULL,
+      url          TEXT NOT NULL,
+      size         INTEGER DEFAULT 0,
+      content_type TEXT DEFAULT '',
+      data         TEXT,
+      catatan      TEXT DEFAULT '',
+      oleh         TEXT DEFAULT '',
+      uploaded_at  TIMESTAMPTZ DEFAULT now()
+    )`
+  await sql`CREATE INDEX IF NOT EXISTS kpr_reports_proyek_idx ON kpr_reports (proyek)`
+
   // Agenda korporasi pada bagan Corporate — satu baris per aksi korporasi
   // (RUPST/RUPS Biasa → perubahan direksi, modal, anggaran dasar, dll).
   await sql`
@@ -384,6 +403,7 @@ export async function deleteProject(id: string): Promise<void> {
   await sql`
     DELETE FROM kpr_followup WHERE kpr_id IN (SELECT id FROM kpr_berkas WHERE proyek=${id})`
   await sql`DELETE FROM kpr_berkas WHERE proyek=${id}`
+  await sql`DELETE FROM kpr_reports WHERE proyek=${id}`
   await sql`DELETE FROM projects WHERE id=${id}`
 }
 
@@ -756,6 +776,100 @@ export async function insertKprFollowup(f: {
 
 export async function deleteKprFollowup(id: number): Promise<void> {
   await db()`DELETE FROM kpr_followup WHERE id=${id}`
+}
+
+export interface KprReportRow {
+  id: number
+  proyek: string
+  judul: string
+  periode: string
+  filename: string
+  url: string
+  size: number
+  contentType: string
+  catatan: string
+  oleh: string
+  uploadedAt: string
+}
+
+export async function getKprReports(proyek?: string): Promise<KprReportRow[]> {
+  const sql = db()
+  const rows = (
+    proyek
+      ? await sql`
+          SELECT id, proyek, judul, periode, filename, url, size, content_type, catatan, oleh,
+                 uploaded_at
+          FROM kpr_reports WHERE proyek=${proyek} ORDER BY uploaded_at DESC, id DESC`
+      : await sql`
+          SELECT id, proyek, judul, periode, filename, url, size, content_type, catatan, oleh,
+                 uploaded_at
+          FROM kpr_reports ORDER BY uploaded_at DESC, id DESC`
+  ) as Record<string, unknown>[]
+  return rows.map((r) => {
+    const id = Number(r.id)
+    const stored = String(r.url ?? '')
+    return {
+      id,
+      proyek: String(r.proyek ?? ''),
+      judul: String(r.judul ?? ''),
+      periode: String(r.periode ?? ''),
+      filename: String(r.filename ?? ''),
+      // Blob-hosted files carry an absolute URL; DB-stored files get a download route.
+      url: stored || `/api/collection?download=${id}`,
+      size: Number(r.size ?? 0),
+      contentType: String(r.content_type ?? ''),
+      catatan: String(r.catatan ?? ''),
+      oleh: String(r.oleh ?? ''),
+      uploadedAt: isoTime(r.uploaded_at),
+    }
+  })
+}
+
+export async function insertKprReport(r: {
+  proyek: string
+  judul: string
+  periode: string
+  filename: string
+  url: string
+  size: number
+  contentType: string
+  catatan: string
+  oleh: string
+  data?: string | null
+}): Promise<number> {
+  const sql = db()
+  const [row] = (await sql`
+    INSERT INTO kpr_reports (proyek, judul, periode, filename, url, size, content_type, catatan,
+      oleh, data)
+    VALUES (${r.proyek}, ${r.judul}, ${r.periode}, ${r.filename}, ${r.url}, ${r.size},
+      ${r.contentType}, ${r.catatan}, ${r.oleh}, ${r.data ?? null})
+    RETURNING id`) as { id: number }[]
+  return row.id
+}
+
+export async function getKprReportUrl(id: number): Promise<string | null> {
+  const sql = db()
+  const [r] = (await sql`SELECT url FROM kpr_reports WHERE id=${id}`) as { url: string }[]
+  return r?.url ?? null
+}
+
+/** Bytes + metadata for a DB-stored report, or null when it lives in Blob. */
+export async function getKprReportData(
+  id: number,
+): Promise<{ data: string; filename: string; contentType: string } | null> {
+  const sql = db()
+  const [r] = (await sql`
+    SELECT data, filename, content_type FROM kpr_reports WHERE id=${id}`) as {
+    data: string | null
+    filename: string
+    content_type: string
+  }[]
+  if (!r || !r.data) return null
+  return { data: r.data, filename: r.filename, contentType: r.content_type || 'application/octet-stream' }
+}
+
+export async function deleteKprReport(id: number): Promise<void> {
+  await db()`DELETE FROM kpr_reports WHERE id=${id}`
 }
 
 /** Removes a file together with its checklist and follow-up history. */

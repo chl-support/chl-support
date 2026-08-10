@@ -393,6 +393,63 @@ export async function addKprFollowup(f: {
   }
 }
 
+/** Satu berkas laporan Collection yang diunggah tim. */
+export interface KprReport {
+  id: number
+  proyek: string
+  judul: string
+  periode: string
+  filename: string
+  url: string
+  size: number
+  contentType: string
+  catatan: string
+  oleh: string
+  uploadedAt: string
+}
+
+export async function fetchKprReports(proyek: string): Promise<KprReport[] | null> {
+  const data = await getJson<{ reports: KprReport[] }>(
+    `/api/collection?reports=1&proyek=${encodeURIComponent(proyek)}`,
+  )
+  return data ? data.reports : null
+}
+
+export async function uploadKprReport(
+  proyek: string,
+  file: File,
+  meta: { judul?: string; periode?: string; catatan?: string; oleh?: string } = {},
+): Promise<UploadResult> {
+  try {
+    const qs = new URLSearchParams({ action: 'report', proyek, filename: file.name })
+    if (meta.judul?.trim()) qs.set('judul', meta.judul.trim())
+    if (meta.periode?.trim()) qs.set('periode', meta.periode.trim())
+    if (meta.catatan?.trim()) qs.set('catatan', meta.catatan.trim())
+    if (meta.oleh?.trim()) qs.set('oleh', meta.oleh.trim())
+    const res = await fetch(`/api/collection?${qs.toString()}`, {
+      method: 'POST',
+      headers: { 'Content-Type': file.type || 'application/octet-stream' },
+      body: file,
+    })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
+    return { ok: true, url: data.url, filename: data.filename, size: data.size }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
+export async function deleteKprReport(id: number): Promise<MutateResult> {
+  try {
+    const res = await fetch(`/api/collection?report=${id}`, { method: 'DELETE' })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
+    return { ok: true, id }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
 // ---- Lands (bidang tanah — bagan Land Acquisition) ----
 
 export type LandRecord = Land & { id: number }

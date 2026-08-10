@@ -110,9 +110,19 @@ tenggat, hitungan hari, dan PIC terisi sendiri. Petugas boleh mengedit sebelum m
 "Kirim WhatsApp & catat" membuka `wa.me` dengan pesan tersebut lalu mencatatnya sebagai riwayat;
 "Catat saja" dipakai untuk kanal lain (telepon, email, kunjungan).
 
-> **Batas otomatisasi.** Aplikasi menyusun, menjadwalkan, dan mencatat follow-up, tapi tidak
-> mengirim sendiri — pengiriman tetap satu klik lewat WhatsApp. Pengiriman benar-benar otomatis
-> butuh WhatsApp Business API atau layanan email beserta cron; belum dipasang di sini.
+Dua kanal tersedia: **WhatsApp** (`wa.me`) dan **email** (`mailto:` dengan subjek per tingkat).
+Identitas pengirim diatur di `PENGIRIM_REMINDER` (`src/data/kpr.ts`).
+
+> **Batas otomatisasi.** Aplikasi menyusun, menjadwalkan, dan mencatat follow-up, tapi **tidak
+> mengirim sendiri** — pengiriman tetap satu klik lewat WhatsApp atau aplikasi email petugas.
+> Supaya benar-benar terkirim tanpa operator, dibutuhkan: (a) email — kunci API penyedia
+> (Resend/SendGrid/SMTP) plus verifikasi domain `ciptaharmoni.com` agar boleh mengirim atas nama
+> alamat itu; atau (b) WhatsApp — akun WhatsApp Business API resmi beserta template pesan yang
+> disetujui Meta (nomor pribadi lewat gateway tidak resmi berisiko diblokir); ditambah penjadwal
+> harian yang memanggil daftar jatuh tempo. Ketiganya belum dipasang.
+
+**Arsip report.** Tombol **Upload report** menyimpan rekap follow-up/reminder per proyek ke Vercel
+Blob (cadangan Neon) beserta judul, periode, pengunggah, dan waktunya — tabel `kpr_reports`.
 
 **SP3K.** Masa berlaku (bawaan 30 hari) dihitung dari tanggal terbit dan memunculkan chip
 `SP3K H-…` / `SP3K lewat … hr`, supaya pelunasan DP dan penjadwalan akad tidak melewati surat
@@ -201,7 +211,7 @@ jadi app tetap jalan meski satu pun resource belum dikonfigurasi.
 | `GET·POST·DELETE /api/corporate` | Bagan **Corporate** — CRUD agenda korporasi, unggah/hapus lampiran bukti |
 | `GET·POST·DELETE /api/comments` | Komentar & jejak audit (`entity` = `corp` / `item`) |
 | `GET·POST·DELETE /api/lands` | Bagan **Land Acquisition** — CRUD bidang tanah per proyek |
-| `GET·POST·PATCH·DELETE /api/collection` | Menu **Collection** — berkas KPR, checklist dokumen (`?dokumen=`), riwayat follow-up (`?action=followup`) |
+| `GET·POST·PATCH·DELETE /api/collection` | Menu **Collection** — berkas KPR, checklist dokumen (`?dokumen=`), riwayat follow-up (`?action=followup`), arsip report (`?action=report`, `?reports=1`, `?download=`) |
 | `GET·POST /api/items` | Baca / buat / ubah item di Neon |
 | `GET·POST /api/upload` | Unggah lampiran item ke Blob (`?filename=…&itemId=…`) · daftar lampiran (`?itemId=…`) |
 | `POST /api/ai` | Asisten AI (OpenAI) — body `{ prompt, context? }` |

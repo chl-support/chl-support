@@ -1,10 +1,23 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import { A, C, CURRENT_USER } from '@/data/constants'
-import { DOK_STATUS, DOK_WAJIB, KANAL_FOLLOWUP, TANGGA_FOLLOWUP } from '@/data/kpr'
+import {
+  DOK_STATUS,
+  DOK_WAJIB,
+  KANAL_FOLLOWUP,
+  PENGIRIM_REMINDER,
+  TANGGA_FOLLOWUP,
+} from '@/data/kpr'
 import type { KprDokumen } from '@/data/types'
 import { addKprFollowup, updateKprDokumen, type KprRecord } from '@/lib/api'
 import { fmtTgl } from '@/lib/format'
-import { statusDokumen, statusFollowup, susunPesan, tautanWa } from '@/lib/followup'
+import {
+  statusDokumen,
+  statusFollowup,
+  susunPesan,
+  susunSubjek,
+  tautanEmail,
+  tautanWa,
+} from '@/lib/followup'
 
 interface FollowupPanelProps {
   berkas: KprRecord
@@ -94,7 +107,7 @@ export function FollowupPanel({ berkas, proyekNama, onChanged }: FollowupPanelPr
     else setErr(res.error ?? 'Gagal memperbarui dokumen.')
   }
 
-  async function catat(kirimWa: boolean) {
+  async function catat(kirim: 'wa' | 'email' | null) {
     if (!pesan.trim()) {
       setErr('Isi pesan tidak boleh kosong.')
       return
@@ -114,8 +127,13 @@ export function FollowupPanel({ berkas, proyekNama, onChanged }: FollowupPanelPr
       setErr(res.error ?? 'Gagal mencatat follow-up.')
       return
     }
-    if (kirimWa && berkas.telepon) {
+    if (kirim === 'wa' && berkas.telepon) {
       window.open(tautanWa(berkas.telepon, pesan.trim()), '_blank', 'noopener')
+    }
+    if (kirim === 'email' && berkas.email) {
+      // mailto membuka aplikasi email petugas dengan penerima, subjek, dan isi
+      // sudah terisi — pengirimnya akun yang dipakai di aplikasi tersebut.
+      window.location.href = tautanEmail(berkas.email, susunSubjek(berkas, pilihan), pesan.trim())
     }
     setHasil('')
     setManual(false)
@@ -371,6 +389,7 @@ export function FollowupPanel({ berkas, proyekNama, onChanged }: FollowupPanelPr
         <div style={{ marginTop: 4, fontSize: 11, fontWeight: 600, color: '#9CA3AF' }}>
           Disusun otomatis dari template {pilihan.nama.toLowerCase()} — nama, unit, daftar dokumen
           yang kurang, tenggat, dan hitungan hari terisi sendiri. Boleh diedit sebelum dikirim.
+          Pengirim: {PENGIRIM_REMINDER.email} · WA {PENGIRIM_REMINDER.whatsapp}.
         </div>
 
         <input
@@ -398,8 +417,8 @@ export function FollowupPanel({ berkas, proyekNama, onChanged }: FollowupPanelPr
           <button
             type="button"
             disabled={busy || !berkas.telepon}
-            onClick={() => catat(true)}
-            title={berkas.telepon ? '' : 'Nomor telepon customer belum diisi'}
+            onClick={() => catat('wa')}
+            title={berkas.telepon ? '' : 'Nomor WhatsApp customer belum diisi'}
             style={{
               ...tombol(A, true),
               ...(berkas.telepon ? {} : { background: '#9DBEC4', cursor: 'not-allowed' }),
@@ -407,7 +426,19 @@ export function FollowupPanel({ berkas, proyekNama, onChanged }: FollowupPanelPr
           >
             Kirim WhatsApp & catat
           </button>
-          <button type="button" disabled={busy} onClick={() => catat(false)} style={tombol(A)}>
+          <button
+            type="button"
+            disabled={busy || !berkas.email}
+            onClick={() => catat('email')}
+            title={berkas.email ? '' : 'Email customer belum diisi'}
+            style={{
+              ...tombol(A),
+              ...(berkas.email ? {} : { color: '#9CA3AF', cursor: 'not-allowed' }),
+            }}
+          >
+            Kirim email & catat
+          </button>
+          <button type="button" disabled={busy} onClick={() => catat(null)} style={tombol(A)}>
             Catat saja
           </button>
           <button type="button" onClick={salin} style={tombol('#6B7280')}>

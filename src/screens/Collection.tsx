@@ -1,8 +1,16 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
-import { A, C } from '@/data/constants'
-import { KPR_FASE, KPR_STATUS, langkahFase } from '@/data/kpr'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { A, C, CURRENT_USER } from '@/data/constants'
+import { KPR_FASE, KPR_STATUS, PENGIRIM_REMINDER, langkahFase } from '@/data/kpr'
 import type { KprBerkas, Project } from '@/data/types'
-import { deleteKpr, fetchKpr, type KprRecord } from '@/lib/api'
+import {
+  deleteKpr,
+  deleteKprReport,
+  fetchKpr,
+  fetchKprReports,
+  uploadKprReport,
+  type KprRecord,
+  type KprReport,
+} from '@/lib/api'
 import { fmtTgl, rp } from '@/lib/format'
 import {
   corongPipeline,
@@ -97,10 +105,14 @@ export function Collection({ proyekAktif }: CollectionProps) {
   const [dialog, setDialog] = useState<{ initial?: KprBerkas } | null>(null)
   const [buka, setBuka] = useState<number | null>(null)
   const [filter, setFilter] = useState<Filter>('Semua')
+  const [reports, setReports] = useState<KprReport[]>([])
 
   const reload = useCallback(async () => {
     setLoading(true)
-    const data = await fetchKpr(proyekAktif.id)
+    const [data, rep] = await Promise.all([
+      fetchKpr(proyekAktif.id),
+      fetchKprReports(proyekAktif.id),
+    ])
     if (data) {
       setRows(data)
       setNotice(null)
@@ -108,6 +120,7 @@ export function Collection({ proyekAktif }: CollectionProps) {
       setRows([])
       setNotice('Backend belum terhubung — hubungkan Neon di Vercel agar berkas KPR bisa disimpan.')
     }
+    setReports(rep ?? [])
     setLoading(false)
   }, [proyekAktif.id])
 
@@ -255,6 +268,12 @@ export function Collection({ proyekAktif }: CollectionProps) {
           </div>
         ))}
       </div>
+
+      <ReportPanel
+        proyek={proyekAktif.id}
+        reports={reports}
+        onChanged={reload}
+      />
 
       {/* filter + tambah */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -500,6 +519,229 @@ export function Collection({ proyekAktif }: CollectionProps) {
             reload()
           }}
         />
+      )}
+    </div>
+  )
+}
+
+const fmtSize = (n: number): string =>
+  n >= 1_000_000 ? (n / 1_000_000).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1000)) + ' KB'
+
+function fmtWaktu(iso: string): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  return d.toLocaleString('id-ID', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+/**
+ * Arsip laporan Collection: rekap follow-up/reminder yang diunggah tim menjadi
+ * satu tempat penyimpanan per proyek. Berkasnya masuk Vercel Blob (cadangan
+ * Neon) dan metadatanya tercatat lengkap dengan periode serta pengunggahnya.
+ */
+function ReportPanel({
+  proyek,
+  reports,
+  onChanged,
+}: {
+  proyek: string
+  reports: KprReport[]
+  onChanged: () => void
+}) {
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [judul, setJudul] = useState('')
+  const [periode, setPeriode] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+  const [buka, setBuka] = useState(false)
+
+  async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setUploading(true)
+    setErr(null)
+    const res = await uploadKprReport(proyek, file, {
+      judul,
+      periode,
+      oleh: CURRENT_USER.nama,
+    })
+    setUploading(false)
+    if (res.ok) {
+      setJudul('')
+      setPeriode('')
+      onChanged()
+    } else {
+      setErr(res.error ?? 'Upload gagal.')
+    }
+  }
+
+  async function onHapus(r: KprReport) {
+    if (!window.confirm(`Hapus report "${r.judul || r.filename}"?`)) return
+    const res = await deleteKprReport(r.id)
+    if (res.ok) onChanged()
+    else setErr(res.error ?? 'Gagal menghapus report.')
+  }
+
+  const isian: CSSProperties = {
+    height: 34,
+    padding: '0 11px',
+    border: '1px solid #E5E7EB',
+    borderRadius: 9,
+    outline: 0,
+    fontFamily: 'inherit',
+    fontSize: 12.5,
+    fontWeight: 600,
+    color: '#111827',
+    background: '#fff',
+    boxSizing: 'border-box',
+  }
+
+  return (
+    <div
+      style={{
+        padding: 16,
+        background: '#fff',
+        border: '1px solid #E5E7EB',
+        borderRadius: 12,
+        boxShadow: 'var(--shadow-xs)',
+        marginBottom: 16,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: '-0.01em' }}>
+            Report follow-up &amp; reminder
+          </div>
+          <div style={{ marginTop: 2, fontSize: 11.5, fontWeight: 600, color: '#6B7280' }}>
+            Arsip rekap yang diunggah tim · {reports.length} berkas · pengirim reminder{' '}
+            {PENGIRIM_REMINDER.email} · WA {PENGIRIM_REMINDER.whatsapp}
+          </div>
+        </div>
+        <div style={{ flex: 1 }} />
+        <button
+          type="button"
+          onClick={() => setBuka(!buka)}
+          style={{
+            height: 30,
+            padding: '0 13px',
+            border: '1px solid #E5E7EB',
+            borderRadius: 'var(--radius-pill)',
+            background: '#fff',
+            fontFamily: 'inherit',
+            fontSize: 12,
+            fontWeight: 700,
+            color: '#6B7280',
+            cursor: 'pointer',
+          }}
+        >
+          {buka ? 'Sembunyikan arsip' : `Lihat arsip (${reports.length})`}
+        </button>
+        <input ref={fileRef} type="file" onChange={onPickFile} style={{ display: 'none' }} />
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          disabled={uploading}
+          className="hc-primary"
+          style={{
+            height: 34,
+            padding: '0 16px',
+            border: 0,
+            borderRadius: 'var(--radius-pill)',
+            background: uploading ? '#9DBEC4' : A,
+            color: '#fff',
+            fontFamily: 'inherit',
+            fontSize: 12.5,
+            fontWeight: 700,
+            cursor: uploading ? 'wait' : 'pointer',
+            boxShadow: 'var(--shadow-sm)',
+          }}
+        >
+          {uploading ? 'Mengunggah…' : '+ Upload report'}
+        </button>
+      </div>
+
+      <div style={{ display: 'flex', gap: 10, marginTop: 11, flexWrap: 'wrap' }}>
+        <input
+          value={judul}
+          onChange={(e) => setJudul(e.target.value)}
+          placeholder="Judul report (mis. Rekap follow-up dokumen KPR)"
+          style={{ ...isian, flex: '1 1 260px' }}
+        />
+        <input
+          value={periode}
+          onChange={(e) => setPeriode(e.target.value)}
+          placeholder="Periode (mis. Agustus 2026 / minggu ke-2)"
+          style={{ ...isian, flex: '1 1 200px' }}
+        />
+      </div>
+      {err && (
+        <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 700, color: C.late }}>{err}</div>
+      )}
+
+      {buka && (
+        <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {reports.length === 0 && (
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#9CA3AF' }}>
+              Belum ada report terunggah untuk proyek ini.
+            </div>
+          )}
+          {reports.map((r) => (
+            <div
+              key={r.id}
+              className="hc-attach"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '9px 11px',
+                border: '1px solid #E5E7EB',
+                borderRadius: 9,
+              }}
+            >
+              <a
+                href={r.url}
+                target="_blank"
+                rel="noreferrer"
+                style={{ flex: 1, minWidth: 0, textDecoration: 'none' }}
+              >
+                <span style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: '#111827' }}>
+                  {r.judul || r.filename}
+                  {r.periode && (
+                    <span style={{ color: '#9CA3AF', fontWeight: 600 }}> · {r.periode}</span>
+                  )}
+                </span>
+                <span style={{ display: 'block', fontSize: 10.5, fontWeight: 600, color: '#9CA3AF' }}>
+                  {r.filename} · {fmtSize(r.size)} · {fmtWaktu(r.uploadedAt)}
+                  {r.oleh && ` · ${r.oleh}`}
+                </span>
+              </a>
+              <button
+                type="button"
+                onClick={() => onHapus(r)}
+                style={{
+                  flex: 'none',
+                  border: 0,
+                  background: 'transparent',
+                  padding: 0,
+                  fontFamily: 'inherit',
+                  fontSize: 11.5,
+                  fontWeight: 700,
+                  color: '#9CA3AF',
+                  cursor: 'pointer',
+                }}
+              >
+                Hapus
+              </button>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )
