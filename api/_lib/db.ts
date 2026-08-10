@@ -81,6 +81,58 @@ export async function ensureSchema(): Promise<void> {
       verif     TEXT,
       dok       INTEGER DEFAULT 0
     )`
+  // Berkas KPR yang dikawal tim Collection, dari booking fee sampai angsuran.
+  await sql`
+    CREATE TABLE IF NOT EXISTS kpr_berkas (
+      id              SERIAL PRIMARY KEY,
+      proyek          TEXT NOT NULL,
+      nama            TEXT NOT NULL,
+      unit            TEXT DEFAULT '',
+      telepon         TEXT DEFAULT '',
+      email           TEXT DEFAULT '',
+      tahap           TEXT NOT NULL DEFAULT 'booking',
+      status          TEXT NOT NULL DEFAULT 'Berjalan',
+      bank            TEXT DEFAULT '',
+      nilai           BIGINT DEFAULT 0,
+      booking_tgl     DATE,
+      tenggat_dokumen DATE,
+      sp3k_tgl        DATE,
+      sp3k_berlaku    INTEGER DEFAULT 30,
+      akad_tgl        DATE,
+      pic             TEXT DEFAULT '',
+      catatan         TEXT DEFAULT '',
+      created_at      TIMESTAMPTZ DEFAULT now(),
+      updated_at      TIMESTAMPTZ DEFAULT now()
+    )`
+  await sql`CREATE INDEX IF NOT EXISTS kpr_berkas_proyek_idx ON kpr_berkas (proyek)`
+
+  // Checklist dokumen per berkas — satu baris per jenis dokumen.
+  await sql`
+    CREATE TABLE IF NOT EXISTS kpr_dokumen (
+      id         SERIAL PRIMARY KEY,
+      kpr_id     INTEGER NOT NULL,
+      jenis      TEXT NOT NULL,
+      status     TEXT NOT NULL DEFAULT 'Belum',
+      tgl_terima DATE,
+      catatan    TEXT DEFAULT '',
+      updated_at TIMESTAMPTZ DEFAULT now()
+    )`
+  await sql`CREATE INDEX IF NOT EXISTS kpr_dokumen_kpr_idx ON kpr_dokumen (kpr_id)`
+
+  // Riwayat follow-up ke customer — jejak setiap kontak beserta pesannya.
+  await sql`
+    CREATE TABLE IF NOT EXISTS kpr_followup (
+      id         SERIAL PRIMARY KEY,
+      kpr_id     INTEGER NOT NULL,
+      tingkat    INTEGER NOT NULL DEFAULT 0,
+      kanal      TEXT NOT NULL DEFAULT 'WhatsApp',
+      pesan      TEXT DEFAULT '',
+      hasil      TEXT DEFAULT '',
+      oleh       TEXT DEFAULT '',
+      created_at TIMESTAMPTZ DEFAULT now()
+    )`
+  await sql`CREATE INDEX IF NOT EXISTS kpr_followup_kpr_idx ON kpr_followup (kpr_id)`
+
   // Agenda korporasi pada bagan Corporate — satu baris per aksi korporasi
   // (RUPST/RUPS Biasa → perubahan direksi, modal, anggaran dasar, dll).
   await sql`
@@ -326,6 +378,12 @@ export async function deleteProject(id: string): Promise<void> {
     DELETE FROM comments WHERE entity='corp'
       AND entity_id IN (SELECT id FROM corporates WHERE proyek=${id})`
   await sql`DELETE FROM corporates WHERE proyek=${id}`
+  // Checklist dan riwayat follow-up menggantung pada berkas KPR-nya.
+  await sql`
+    DELETE FROM kpr_dokumen WHERE kpr_id IN (SELECT id FROM kpr_berkas WHERE proyek=${id})`
+  await sql`
+    DELETE FROM kpr_followup WHERE kpr_id IN (SELECT id FROM kpr_berkas WHERE proyek=${id})`
+  await sql`DELETE FROM kpr_berkas WHERE proyek=${id}`
   await sql`DELETE FROM projects WHERE id=${id}`
 }
 
@@ -455,6 +513,257 @@ export async function insertComment(c: {
 
 export async function deleteComment(id: number): Promise<void> {
   await db()`DELETE FROM comments WHERE id=${id}`
+}
+
+// ---- Collection — berkas KPR, checklist dokumen, follow-up ----
+
+export interface KprDokumenRow {
+  id: number
+  kprId: number
+  jenis: string
+  status: string
+  tglTerima: string
+  catatan: string
+}
+
+export interface KprFollowupRow {
+  id: number
+  kprId: number
+  tingkat: number
+  kanal: string
+  pesan: string
+  hasil: string
+  oleh: string
+  createdAt: string
+}
+
+export interface KprBerkasRow {
+  id: number
+  proyek: string
+  nama: string
+  unit: string
+  telepon: string
+  email: string
+  tahap: string
+  status: string
+  bank: string
+  nilai: number
+  bookingTgl: string
+  tenggatDokumen: string
+  sp3kTgl: string
+  sp3kBerlaku: number
+  akadTgl: string
+  pic: string
+  catatan: string
+  dokumen: KprDokumenRow[]
+  followup: KprFollowupRow[]
+}
+
+const toKprDok = (r: Record<string, unknown>): KprDokumenRow => ({
+  id: Number(r.id),
+  kprId: Number(r.kpr_id),
+  jenis: String(r.jenis ?? ''),
+  status: String(r.status ?? 'Belum'),
+  tglTerima: r.tgl_terima ? isoDate(r.tgl_terima) : '',
+  catatan: String(r.catatan ?? ''),
+})
+
+const toKprFu = (r: Record<string, unknown>): KprFollowupRow => ({
+  id: Number(r.id),
+  kprId: Number(r.kpr_id),
+  tingkat: Number(r.tingkat ?? 0),
+  kanal: String(r.kanal ?? ''),
+  pesan: String(r.pesan ?? ''),
+  hasil: String(r.hasil ?? ''),
+  oleh: String(r.oleh ?? ''),
+  createdAt: isoTime(r.created_at),
+})
+
+/** Groups child rows by their parent id in one pass. */
+function groupBy<T>(rows: T[], key: (row: T) => number): Map<number, T[]> {
+  const map = new Map<number, T[]>()
+  for (const row of rows) {
+    const k = key(row)
+    const list = map.get(k)
+    if (list) list.push(row)
+    else map.set(k, [row])
+  }
+  return map
+}
+
+export async function getKprBerkas(proyek?: string): Promise<KprBerkasRow[]> {
+  const sql = db()
+  const [rows, dok, fu] = await Promise.all([
+    (proyek
+      ? sql`SELECT * FROM kpr_berkas WHERE proyek=${proyek} ORDER BY id DESC`
+      : sql`SELECT * FROM kpr_berkas ORDER BY proyek, id DESC`) as Promise<Record<string, unknown>[]>,
+    sql`SELECT * FROM kpr_dokumen ORDER BY id` as Promise<Record<string, unknown>[]>,
+    sql`SELECT * FROM kpr_followup ORDER BY created_at DESC, id DESC` as Promise<
+      Record<string, unknown>[]
+    >,
+  ])
+  const dokMap = groupBy(dok.map(toKprDok), (d) => d.kprId)
+  const fuMap = groupBy(fu.map(toKprFu), (f) => f.kprId)
+  return rows.map((r) => {
+    const id = Number(r.id)
+    return {
+      id,
+      proyek: String(r.proyek ?? ''),
+      nama: String(r.nama ?? ''),
+      unit: String(r.unit ?? ''),
+      telepon: String(r.telepon ?? ''),
+      email: String(r.email ?? ''),
+      tahap: String(r.tahap ?? 'booking'),
+      status: String(r.status ?? 'Berjalan'),
+      bank: String(r.bank ?? ''),
+      nilai: Number(r.nilai ?? 0),
+      bookingTgl: r.booking_tgl ? isoDate(r.booking_tgl) : '',
+      tenggatDokumen: r.tenggat_dokumen ? isoDate(r.tenggat_dokumen) : '',
+      sp3kTgl: r.sp3k_tgl ? isoDate(r.sp3k_tgl) : '',
+      sp3kBerlaku: Number(r.sp3k_berlaku ?? 30),
+      akadTgl: r.akad_tgl ? isoDate(r.akad_tgl) : '',
+      pic: String(r.pic ?? ''),
+      catatan: String(r.catatan ?? ''),
+      dokumen: dokMap.get(id) ?? [],
+      followup: fuMap.get(id) ?? [],
+    }
+  })
+}
+
+export async function upsertKprBerkas(b: {
+  id?: number
+  proyek: string
+  nama: string
+  unit?: string
+  telepon?: string
+  email?: string
+  tahap?: string
+  status?: string
+  bank?: string
+  nilai?: number
+  bookingTgl?: string | null
+  tenggatDokumen?: string | null
+  sp3kTgl?: string | null
+  sp3kBerlaku?: number
+  akadTgl?: string | null
+  pic?: string
+  catatan?: string
+}): Promise<number> {
+  const sql = db()
+  const v = {
+    unit: b.unit ?? '',
+    telepon: b.telepon ?? '',
+    email: b.email ?? '',
+    tahap: b.tahap ?? 'booking',
+    status: b.status ?? 'Berjalan',
+    bank: b.bank ?? '',
+    nilai: b.nilai ?? 0,
+    booking: b.bookingTgl || null,
+    tenggat: b.tenggatDokumen || null,
+    sp3k: b.sp3kTgl || null,
+    berlaku: b.sp3kBerlaku ?? 30,
+    akad: b.akadTgl || null,
+    pic: b.pic ?? '',
+    catatan: b.catatan ?? '',
+  }
+  if (b.id) {
+    const [r] = (await sql`
+      UPDATE kpr_berkas SET proyek=${b.proyek}, nama=${b.nama}, unit=${v.unit}, telepon=${v.telepon},
+        email=${v.email}, tahap=${v.tahap}, status=${v.status}, bank=${v.bank}, nilai=${v.nilai},
+        booking_tgl=${v.booking}, tenggat_dokumen=${v.tenggat}, sp3k_tgl=${v.sp3k},
+        sp3k_berlaku=${v.berlaku}, akad_tgl=${v.akad}, pic=${v.pic}, catatan=${v.catatan},
+        updated_at=now()
+      WHERE id=${b.id} RETURNING id`) as { id: number }[]
+    return r?.id ?? 0
+  }
+  const [r] = (await sql`
+    INSERT INTO kpr_berkas (proyek, nama, unit, telepon, email, tahap, status, bank, nilai,
+      booking_tgl, tenggat_dokumen, sp3k_tgl, sp3k_berlaku, akad_tgl, pic, catatan)
+    VALUES (${b.proyek}, ${b.nama}, ${v.unit}, ${v.telepon}, ${v.email}, ${v.tahap}, ${v.status},
+      ${v.bank}, ${v.nilai}, ${v.booking}, ${v.tenggat}, ${v.sp3k}, ${v.berlaku}, ${v.akad},
+      ${v.pic}, ${v.catatan})
+    RETURNING id`) as { id: number }[]
+  return r.id
+}
+
+/** Creates the standard checklist rows for a new file, skipping existing ones. */
+export async function seedKprDokumen(kprId: number, jenisList: string[]): Promise<void> {
+  if (!jenisList.length) return
+  const sql = db()
+  const rows = (await sql`SELECT jenis FROM kpr_dokumen WHERE kpr_id=${kprId}`) as {
+    jenis: string
+  }[]
+  const ada = new Set(rows.map((r) => r.jenis))
+  const baru = jenisList.filter((j) => !ada.has(j))
+  if (!baru.length) return
+  const { placeholders, params } = bulk(baru.map((j) => [kprId, j, 'Belum']))
+  await sql.query(
+    `INSERT INTO kpr_dokumen (kpr_id, jenis, status) VALUES ${placeholders}`,
+    params,
+  )
+}
+
+export async function updateKprDokumen(
+  id: number,
+  patch: { status?: string; catatan?: string },
+): Promise<KprDokumenRow | null> {
+  const sql = db()
+  const [cur] = (await sql`SELECT * FROM kpr_dokumen WHERE id=${id}`) as Record<string, unknown>[]
+  if (!cur) return null
+  const status = patch.status ?? String(cur.status ?? 'Belum')
+  const catatan = patch.catatan ?? String(cur.catatan ?? '')
+  // Tanggal terima distempel saat dokumen diterima, dihapus saat status mundur.
+  const tglTerima = status === 'Diterima' ? new Date().toISOString().slice(0, 10) : null
+  const [r] = (await sql`
+    UPDATE kpr_dokumen SET status=${status}, catatan=${catatan}, tgl_terima=${tglTerima},
+      updated_at=now()
+    WHERE id=${id} RETURNING *`) as Record<string, unknown>[]
+  return r ? toKprDok(r) : null
+}
+
+export async function insertKprDokumen(d: {
+  kprId: number
+  jenis: string
+  catatan?: string
+}): Promise<number> {
+  const sql = db()
+  const [r] = (await sql`
+    INSERT INTO kpr_dokumen (kpr_id, jenis, status, catatan)
+    VALUES (${d.kprId}, ${d.jenis}, 'Belum', ${d.catatan ?? ''})
+    RETURNING id`) as { id: number }[]
+  return r.id
+}
+
+export async function deleteKprDokumen(id: number): Promise<void> {
+  await db()`DELETE FROM kpr_dokumen WHERE id=${id}`
+}
+
+export async function insertKprFollowup(f: {
+  kprId: number
+  tingkat: number
+  kanal: string
+  pesan: string
+  hasil?: string
+  oleh?: string
+}): Promise<number> {
+  const sql = db()
+  const [r] = (await sql`
+    INSERT INTO kpr_followup (kpr_id, tingkat, kanal, pesan, hasil, oleh)
+    VALUES (${f.kprId}, ${f.tingkat}, ${f.kanal}, ${f.pesan}, ${f.hasil ?? ''}, ${f.oleh ?? ''})
+    RETURNING id`) as { id: number }[]
+  return r.id
+}
+
+export async function deleteKprFollowup(id: number): Promise<void> {
+  await db()`DELETE FROM kpr_followup WHERE id=${id}`
+}
+
+/** Removes a file together with its checklist and follow-up history. */
+export async function deleteKprBerkas(id: number): Promise<void> {
+  const sql = db()
+  await sql`DELETE FROM kpr_dokumen WHERE kpr_id=${id}`
+  await sql`DELETE FROM kpr_followup WHERE kpr_id=${id}`
+  await sql`DELETE FROM kpr_berkas WHERE id=${id}`
 }
 
 // ---- Corporate — agenda & aksi korporasi ----

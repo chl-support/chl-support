@@ -26,6 +26,7 @@ npm run typecheck
 | **Feasibility & Initial Cost** | KPI NPV/IRR/Payback/Margin/BEP/Peak Cash · kurva kas kumulatif · sensitivitas · 11 tahap initial cost |
 | **ItemDrawer** | Panel 480px: stepper verifikasi · form · lampiran nyata · kendala · komentar & jejak audit |
 | **Internal Audit** | Unggah dokumen · 5 KPI alur · filter status · stepper tanda tangan bertahap antar divisi |
+| **Collection** | Pipeline KPR 11 langkah · monitoring checklist dokumen · follow-up otomatis bertingkat |
 
 Modul P2 (Finance & Correspondence, Pengaturan) menampilkan `ModulKosong` — strukturnya identik
 dengan modul lain, jadi tidak ada komponen baru yang perlu dirancang.
@@ -73,6 +74,49 @@ letak, luas, pemilik/atas nama, nomor girik/sertifikat, status (memakai palet st
 dengan modul lain), target, PIC, dan catatan. Bidang yang lewat target memunculkan chip
 Terlambat, dan KPI di atas merangkum jumlah bidang, total luas, perolehan PT yang tuntas, bidang
 siap AJB, serta yang lewat target.
+
+### Pipeline KPR & follow-up otomatis (Collection)
+
+Alur kerja Collection dimodelkan di `src/data/kpr.ts`: dua tahap, sembilan langkah, dan dua
+percabangan.
+
+| Tahap | Langkah |
+| --- | --- |
+| **1 · Booking fee sampai pengajuan ke bank** | Booking fee → Verifikasi dokumen ⑂ → Pembayaran DP → Pengajuan KPR |
+| **2 · Appraisal bank sampai akad kredit** | Appraisal & BI checking ⑂ → SP3K terbit → Pelunasan DP → Akad kredit → Monitoring angsuran |
+
+Kedua percabangan (⑂) tidak disimpan sebagai langkah tersendiri — hasilnya tercermin pada status
+berkas, sehingga satu berkas tidak bisa berada di langkah dan hasil yang bertentangan:
+`Tertahan` saat dokumen belum lengkap, `Ditolak Bank` saat kredit tidak disetujui.
+
+**Monitoring dokumen.** Tiap berkas baru otomatis membawa checklist lima dokumen wajib (KTP, KK,
+NPWP, slip gaji/rekening koran, surat keterangan kerja). Statusnya `Belum` / `Diterima` /
+`Perlu perbaikan`; tanggal terima distempel sendiri saat ditandai diterima. Dokumen tambahan yang
+diminta bank bisa ditambahkan per berkas.
+
+**Follow-up otomatis.** Jadwalnya dihitung dari tenggat yang disepakati dengan customer — tidak
+ada status follow-up yang disimpan, semuanya diturunkan di `src/lib/followup.ts` sehingga daftar
+"perlu dikejar hari ini" selalu konsisten dengan riwayat kontak:
+
+| Tingkat | Jadwal | Nada |
+| --- | --- | --- |
+| Pengingat | H-3 | Ramah, sebelum tenggat |
+| Follow-up 1 | H+1 | Sopan, tenggat baru lewat |
+| Follow-up 2 | H+4 | Tegas, jadwal akad berpotensi mundur |
+| Eskalasi | H+7 | Eskalasi supervisor + peringatan booking |
+
+Pesannya disusun otomatis dari template: nama, unit, proyek, **daftar dokumen yang masih kurang**,
+tenggat, hitungan hari, dan PIC terisi sendiri. Petugas boleh mengedit sebelum mengirim. Tombol
+"Kirim WhatsApp & catat" membuka `wa.me` dengan pesan tersebut lalu mencatatnya sebagai riwayat;
+"Catat saja" dipakai untuk kanal lain (telepon, email, kunjungan).
+
+> **Batas otomatisasi.** Aplikasi menyusun, menjadwalkan, dan mencatat follow-up, tapi tidak
+> mengirim sendiri — pengiriman tetap satu klik lewat WhatsApp. Pengiriman benar-benar otomatis
+> butuh WhatsApp Business API atau layanan email beserta cron; belum dipasang di sini.
+
+**SP3K.** Masa berlaku (bawaan 30 hari) dihitung dari tanggal terbit dan memunculkan chip
+`SP3K H-…` / `SP3K lewat … hr`, supaya pelunasan DP dan penjadwalan akad tidak melewati surat
+persetujuan bank.
 
 ### Monitoring tanda tangan (Internal Audit)
 
@@ -157,6 +201,7 @@ jadi app tetap jalan meski satu pun resource belum dikonfigurasi.
 | `GET·POST·DELETE /api/corporate` | Bagan **Corporate** — CRUD agenda korporasi, unggah/hapus lampiran bukti |
 | `GET·POST·DELETE /api/comments` | Komentar & jejak audit (`entity` = `corp` / `item`) |
 | `GET·POST·DELETE /api/lands` | Bagan **Land Acquisition** — CRUD bidang tanah per proyek |
+| `GET·POST·PATCH·DELETE /api/collection` | Menu **Collection** — berkas KPR, checklist dokumen (`?dokumen=`), riwayat follow-up (`?action=followup`) |
 | `GET·POST /api/items` | Baca / buat / ubah item di Neon |
 | `GET·POST /api/upload` | Unggah lampiran item ke Blob (`?filename=…&itemId=…`) · daftar lampiran (`?itemId=…`) |
 | `POST /api/ai` | Asisten AI (OpenAI) — body `{ prompt, context? }` |
@@ -186,7 +231,9 @@ aman dipanggil ulang, tidak menimpa data yang sudah ada). Lampiran ≤ 4,5 MB pe
 > `reset` digabung ke `api/system.ts` dengan `?action=…`, sementara path lamanya dipertahankan
 > lewat `rewrites` di `vercel.json`. Saat menambah endpoint baru, hitung dulu berkas di `api/`
 > (`ls api/*.ts`) — bila sudah 12, gabungkan endpoint sejenis alih-alih menambah berkas, karena
-> deployment akan **gagal total** begitu batasnya terlampaui.
+> deployment akan **gagal total** begitu batasnya terlampaui. Saat ini terpakai **12 dari 12**,
+> jadi endpoint berikutnya wajib menumpang berkas yang ada (pola `?action=` seperti
+> `api/collection.ts`).
 
 ## Data
 

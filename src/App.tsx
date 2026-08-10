@@ -22,6 +22,7 @@ import { Tim } from '@/screens/Tim'
 import { InternalAudit } from '@/screens/InternalAudit'
 import { LandAcquisition } from '@/screens/LandAcquisition'
 import { Corporate } from '@/screens/Corporate'
+import { Collection } from '@/screens/Collection'
 
 const isBagan = (id: NavId): id is (typeof BAGAN)[number] =>
   (BAGAN as readonly string[]).includes(id)
@@ -181,6 +182,8 @@ export default function App() {
     } else if (id === 'corporate') {
       setScreen('corporate')
       setModul('corporate')
+    } else if (id === 'collection') {
+      setScreen('collection')
     } else if (id === 'feasibility') {
       setScreen('feasibility')
       setModul('feasibility')
@@ -337,6 +340,13 @@ export default function App() {
                   notice={permitsNotice}
                   onChanged={() => loadPermits(proyek)}
                 />
+              ) : (
+                <NoProjectNotice onAddProject={() => setNewProject(true)} />
+              ))}
+
+            {screen === 'collection' &&
+              (proyekAktif ? (
+                <Collection proyekAktif={proyekAktif} />
               ) : (
                 <NoProjectNotice onAddProject={() => setNewProject(true)} />
               ))}

@@ -8,6 +8,9 @@ import type {
   CorpDoc,
   Item,
   Komentar,
+  KprBerkas,
+  KprDokumen,
+  KprFollowup,
   Land,
   Permit,
   Personel,
@@ -286,6 +289,105 @@ export async function deleteCorpDoc(docId: number): Promise<MutateResult> {
     const data = await res.json().catch(() => null)
     if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
     return { ok: true, id: docId }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
+// ---- Collection (berkas KPR, checklist dokumen, follow-up) ----
+
+export type KprRecord = KprBerkas & {
+  id: number
+  dokumen: KprDokumen[]
+  followup: KprFollowup[]
+}
+
+export async function fetchKpr(proyek: string): Promise<KprRecord[] | null> {
+  const data = await getJson<{ berkas: KprRecord[] }>(
+    `/api/collection?proyek=${encodeURIComponent(proyek)}`,
+  )
+  return data ? data.berkas : null
+}
+
+export async function saveKpr(berkas: KprBerkas): Promise<MutateResult> {
+  try {
+    const res = await fetch('/api/collection', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(berkas),
+    })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
+    return { ok: true, id: data.id }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
+export async function deleteKpr(id: number): Promise<MutateResult> {
+  try {
+    const res = await fetch(`/api/collection?id=${id}`, { method: 'DELETE' })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
+    return { ok: true, id }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
+/** Menandai satu dokumen checklist diterima / perlu perbaikan / belum. */
+export async function updateKprDokumen(
+  dokumenId: number,
+  patch: { status?: string; catatan?: string },
+): Promise<MutateResult> {
+  try {
+    const res = await fetch(`/api/collection?dokumen=${dokumenId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
+    return { ok: true, id: dokumenId }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
+/** Menambah dokumen di luar checklist baku (mis. permintaan tambahan bank). */
+export async function addKprDokumen(kprId: number, jenis: string): Promise<MutateResult> {
+  try {
+    const res = await fetch('/api/collection?action=dokumen', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kprId, jenis }),
+    })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
+    return { ok: true, id: data.id }
+  } catch (e) {
+    return { ok: false, error: (e as Error).message }
+  }
+}
+
+/** Mencatat satu follow-up ke customer beserta isi pesannya. */
+export async function addKprFollowup(f: {
+  kprId: number
+  tingkat: number
+  kanal: string
+  pesan: string
+  hasil?: string
+  oleh?: string
+}): Promise<MutateResult> {
+  try {
+    const res = await fetch('/api/collection?action=followup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(f),
+    })
+    const data = await res.json().catch(() => null)
+    if (!res.ok || !data?.ok) return { ok: false, error: data?.error ?? `Gagal (HTTP ${res.status})` }
+    return { ok: true, id: data.id }
   } catch (e) {
     return { ok: false, error: (e as Error).message }
   }

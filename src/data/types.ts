@@ -26,6 +26,7 @@ export type ScreenId =
   | 'audit'
   | 'land'
   | 'corporate'
+  | 'collection'
 
 /**
  * Status satu langkah tanda tangan. Menunggu → Diproses → Ditandatangani,
@@ -220,6 +221,68 @@ export interface Land {
   tgl: string
   pic: string
   catatan: string
+}
+
+/** Satu dokumen pada checklist berkas KPR. */
+export interface KprDokumen {
+  id: number
+  kprId: number
+  /** Salah satu dari `DOK_WAJIB`, atau dokumen tambahan yang diminta bank. */
+  jenis: string
+  /** 'Belum' | 'Diterima' | 'Perlu perbaikan' */
+  status: string
+  /** ISO yyyy-mm-dd saat dokumen diterima; kosong bila belum. */
+  tglTerima: string
+  catatan: string
+}
+
+/** Satu catatan follow-up ke customer. */
+export interface KprFollowup {
+  id: number
+  kprId: number
+  /** 0 = pengingat H-3, 1..3 = tangga setelah tenggat. */
+  tingkat: number
+  kanal: string
+  /** Isi pesan yang dikirim — disimpan apa adanya untuk jejak audit. */
+  pesan: string
+  /** Tanggapan customer / hasil kontak. */
+  hasil: string
+  oleh: string
+  createdAt: string
+}
+
+/** Satu berkas KPR yang dikawal tim Collection. */
+export interface KprBerkas {
+  /** Present only when the file comes from the database. */
+  id?: number
+  proyek: ProjectId
+  nama: string
+  /** Unit / kavling yang dibooking. */
+  unit: string
+  telepon: string
+  email: string
+  /** Kunci langkah pada `KPR_LANGKAH`. */
+  tahap: string
+  /** 'Berjalan' | 'Tertahan' | 'Ditolak Bank' | 'Selesai' | 'Batal' */
+  status: string
+  bank: string
+  /** Nilai KPR yang diajukan, rupiah penuh. */
+  nilai: number
+  /** ISO yyyy-mm-dd — tanggal booking fee dibayar. */
+  bookingTgl: string
+  /** ISO yyyy-mm-dd — tenggat pengumpulan dokumen yang disepakati customer. */
+  tenggatDokumen: string
+  /** ISO yyyy-mm-dd — tanggal SP3K terbit. */
+  sp3kTgl: string
+  /** Masa berlaku SP3K dalam hari (default 30). */
+  sp3kBerlaku: number
+  /** ISO yyyy-mm-dd — jadwal/realisasi akad kredit. */
+  akadTgl: string
+  /** Petugas collection yang menangani. */
+  pic: string
+  catatan: string
+  dokumen?: KprDokumen[]
+  followup?: KprFollowup[]
 }
 
 export interface Tahap {
