@@ -1,7 +1,9 @@
-import { C, CURRENT_USER } from '@/data/constants'
+import { C } from '@/data/constants'
 import {
   DOK_WAJIB,
+  PENGIRIM_REMINDER,
   SP3K_BERLAKU_DEFAULT,
+  SUBJEK_EMAIL,
   TANGGA_FOLLOWUP,
   langkahDari,
   urutanLangkah,
@@ -118,9 +120,33 @@ export function susunPesan(
     tenggat: berkas.tenggatDokumen ? fmtTgl(berkas.tenggatDokumen) : '-',
     // Sebelum tenggat placeholder {hari} berarti sisa hari, sesudahnya keterlambatan.
     hari: String(Math.abs(lewat)),
-    pic: berkas.pic || CURRENT_USER.nama,
+    pic: berkas.pic || PENGIRIM_REMINDER.nama,
   }
-  return tingkat.template.replace(/\{(\w+)\}/g, (cocok, kunci: string) => isi[kunci] ?? cocok)
+  return isiTemplate(tingkat.template, isi)
+}
+
+const isiTemplate = (teks: string, isi: Record<string, string>): string =>
+  teks.replace(/\{(\w+)\}/g, (cocok, kunci: string) => isi[kunci] ?? cocok)
+
+/** Subjek email untuk tingkat tertentu, placeholder-nya ikut terisi. */
+export function susunSubjek(berkas: KprBerkas, tingkat: TingkatFollowup): string {
+  const lewat = berkas.tenggatDokumen ? -hari(berkas.tenggatDokumen) : 0
+  return isiTemplate(SUBJEK_EMAIL[tingkat.tingkat] ?? 'Dokumen KPR — {unit}', {
+    unit: berkas.unit || berkas.nama,
+    nama: berkas.nama,
+    hari: String(Math.abs(lewat)),
+  })
+}
+
+/**
+ * Tautan email siap kirim. `mailto:` membuka aplikasi email petugas dengan
+ * penerima, subjek, dan isi sudah terisi — pengirimnya akun yang dipakai di
+ * aplikasi tersebut, yaitu {@link PENGIRIM_REMINDER.email}.
+ */
+export function tautanEmail(tujuan: string, subjek: string, pesan: string): string {
+  return `mailto:${encodeURIComponent(tujuan)}?subject=${encodeURIComponent(
+    subjek,
+  )}&body=${encodeURIComponent(pesan)}`
 }
 
 /** `08xx` / `+62 8xx` → `628xx`, agar bisa dipakai pada tautan wa.me. */

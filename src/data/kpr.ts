@@ -220,6 +220,27 @@ export const TANGGA_FOLLOWUP: TingkatFollowup[] = [
   },
 ]
 
+/**
+ * Identitas pengirim reminder Collection. Dipakai untuk menyusun tautan
+ * WhatsApp/email dan sebagai tanda tangan pesan. Bila nanti pengiriman
+ * dijalankan penjadwal (bukan satu klik), nilai inilah yang menjadi akun
+ * pengirimnya.
+ */
+export const PENGIRIM_REMINDER = {
+  nama: 'Agung M. Ramdhani',
+  jabatan: 'Collection',
+  email: 'agung.mulyana@ciptaharmoni.com',
+  whatsapp: '087898116981',
+}
+
+/** Subjek email per tingkat, dipakai saat follow-up dikirim lewat email. */
+export const SUBJEK_EMAIL: Record<number, string> = {
+  0: 'Pengingat kelengkapan dokumen KPR — {unit}',
+  1: 'Follow-up dokumen KPR yang belum lengkap — {unit}',
+  2: 'Dokumen KPR belum lengkap {hari} hari setelah tenggat — {unit}',
+  3: 'Eskalasi: dokumen KPR belum lengkap — {unit}',
+}
+
 export const KANAL_FOLLOWUP = ['WhatsApp', 'Telepon', 'Email', 'Kunjungan'] as const
 export type KanalFollowup = (typeof KANAL_FOLLOWUP)[number]
 
