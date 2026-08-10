@@ -66,6 +66,8 @@ export const ICON: Record<string, string> = {
   feasibility: 'M3 17l6-6 4 4 8-8M17 7h4v4',
   finance: 'M3 8a2 2 0 0 1 2-2h13v3M3 8v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2H5a2 2 0 0 1-2-2M17 14h.01',
   audit: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zM9 12l2 2 4-4',
+  collection:
+    'M6 2h12a1 1 0 0 1 1 1v18l-3-2-3 2-3-2-3 2V3a1 1 0 0 1 1-1ZM9 7h6M9 11h6M9 15h3',
   pengaturan: 'M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M10 15v6',
   tim: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
 }
@@ -81,7 +83,7 @@ export interface NavGroup {
   items: NavEntry[]
 }
 
-/** Ten navigation items, per the PRD — do not add more. */
+/** Sidebar navigation, grouped as the PRD lays it out. */
 export const NAV_GROUPS: NavGroup[] = [
   {
     label: '',
@@ -106,6 +108,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: 'feasibility', label: 'Feasibility & Initial Cost', icon: ICON.feasibility },
       { id: 'finance', label: 'Finance & Correspondence', icon: ICON.finance },
       { id: 'audit', label: 'Internal Audit', icon: ICON.audit },
+      { id: 'collection', label: 'Collection', icon: ICON.collection },
     ],
   },
   {

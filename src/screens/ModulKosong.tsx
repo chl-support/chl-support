@@ -1,7 +1,23 @@
 import { PillButton } from '@/components/PillButton'
 
-/** Placeholder for the P2 modules that reuse the existing table and flow. */
-export function ModulKosong({ judul, onBack }: { judul: string; onBack: () => void }) {
+const PESAN_P2 =
+  'Modul ini masuk gelombang P2. Struktur tabel dan alur verifikasinya identik dengan modul lain, ' +
+  'jadi tidak ada komponen baru yang perlu dirancang.'
+
+/**
+ * Placeholder untuk modul yang layarnya belum dirancang. Teks bawaannya
+ * menjelaskan modul gelombang P2; menu yang baru dibuat mengirim `pesan`
+ * sendiri agar tidak mengaku sebagai modul P2.
+ */
+export function ModulKosong({
+  judul,
+  pesan = PESAN_P2,
+  onBack,
+}: {
+  judul: string
+  pesan?: string
+  onBack: () => void
+}) {
   return (
     <div
       style={{
@@ -50,8 +66,7 @@ export function ModulKosong({ judul, onBack }: { judul: string; onBack: () => vo
           textWrap: 'pretty',
         }}
       >
-        Modul ini masuk gelombang P2. Struktur tabel dan alur verifikasinya identik dengan modul lain,
-        jadi tidak ada komponen baru yang perlu dirancang.
+        {pesan}
       </div>
       <div style={{ marginTop: 18 }}>
         <PillButton onClick={onBack}>Kembali ke dashboard</PillButton>

@@ -64,6 +64,12 @@ function NoProjectNotice({ onAddProject }: { onAddProject: () => void }) {
  */
 const MATRIX_STYLE: MatrixStyle = 'Angka'
 
+/** Menu Collection baru dibuat; isinya menunggu konsep dari tim penagihan. */
+const PESAN_COLLECTION =
+  'Menu Collection sudah aktif, tapi isinya belum dirancang. Kirimkan susunan yang diinginkan — ' +
+  'misalnya daftar tagihan, jatuh tempo, umur piutang, dan PIC penagihnya — lalu layarnya dibangun ' +
+  'seperti Corporate dan Land Acquisition.'
+
 export default function App() {
   const [screen, setScreen] = useState<ScreenId>('dashboard')
   const [nav, setNav] = useState<NavId>('dashboard')
@@ -226,7 +232,9 @@ export default function App() {
       ? 'Finance & Correspondence'
       : nav === 'audit'
         ? 'Internal Audit'
-        : 'Pengaturan'
+        : nav === 'collection'
+          ? 'Collection'
+          : 'Pengaturan'
 
   const densityLabel = density === 'rapat' ? 'Rapat' : 'Longgar'
   const toggleDensity = () => setDensity(density === 'rapat' ? 'longgar' : 'rapat')
@@ -359,7 +367,11 @@ export default function App() {
             {screen === 'audit' && <InternalAudit />}
 
             {screen === 'kosong' && (
-              <ModulKosong judul={kosongJudul} onBack={() => goNav('dashboard')} />
+              <ModulKosong
+                judul={kosongJudul}
+                pesan={nav === 'collection' ? PESAN_COLLECTION : undefined}
+                onBack={() => goNav('dashboard')}
+              />
             )}
           </div>
         </main>
