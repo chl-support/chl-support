@@ -7,7 +7,14 @@ export type ModuleId =
   | 'feasibility'
   | 'finance'
 
-export type NavId = 'dashboard' | 'proyek' | ModuleId | 'audit' | 'pengaturan' | 'tim'
+export type NavId =
+  | 'dashboard'
+  | 'proyek'
+  | ModuleId
+  | 'audit'
+  | 'collection'
+  | 'pengaturan'
+  | 'tim'
 
 export type ScreenId =
   | 'dashboard'
