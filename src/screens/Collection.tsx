@@ -106,6 +106,7 @@ export function Collection({ proyekAktif }: CollectionProps) {
   const [buka, setBuka] = useState<number | null>(null)
   const [filter, setFilter] = useState<Filter>('Semua')
   const [reports, setReports] = useState<KprReport[]>([])
+  const [reportGagal, setReportGagal] = useState(false)
 
   const reload = useCallback(async () => {
     setLoading(true)
@@ -121,6 +122,8 @@ export function Collection({ proyekAktif }: CollectionProps) {
       setNotice('Backend belum terhubung — hubungkan Neon di Vercel agar berkas KPR bisa disimpan.')
     }
     setReports(rep ?? [])
+    // `null` berarti permintaan gagal — dibedakan dari daftar yang memang kosong.
+    setReportGagal(rep === null)
     setLoading(false)
   }, [proyekAktif.id])
 
@@ -272,6 +275,7 @@ export function Collection({ proyekAktif }: CollectionProps) {
       <ReportPanel
         proyek={proyekAktif.id}
         reports={reports}
+        gagalMuat={reportGagal}
         onChanged={reload}
       />
 
@@ -524,6 +528,9 @@ export function Collection({ proyekAktif }: CollectionProps) {
   )
 }
 
+/** Batas body serverless Vercel — berkas di atas ini ditolak sebelum dikirim. */
+const BATAS_UNGGAH = 4_500_000
+
 const fmtSize = (n: number): string =>
   n >= 1_000_000 ? (n / 1_000_000).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1000)) + ' KB'
 
@@ -548,10 +555,12 @@ function fmtWaktu(iso: string): string {
 function ReportPanel({
   proyek,
   reports,
+  gagalMuat,
   onChanged,
 }: {
   proyek: string
   reports: KprReport[]
+  gagalMuat: boolean
   onChanged: () => void
 }) {
   const fileRef = useRef<HTMLInputElement>(null)
@@ -559,14 +568,26 @@ function ReportPanel({
   const [periode, setPeriode] = useState('')
   const [uploading, setUploading] = useState(false)
   const [err, setErr] = useState<string | null>(null)
-  const [buka, setBuka] = useState(false)
+  const [sukses, setSukses] = useState<string | null>(null)
+  // Arsip terbuka sejak awal supaya berkas yang baru diunggah langsung terlihat.
+  const [buka, setBuka] = useState(true)
 
   async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
-    setUploading(true)
     setErr(null)
+    setSukses(null)
+    // Vercel menolak body di atas ~4,5 MB dengan galat yang tidak informatif,
+    // jadi berkas kebesaran dihentikan di sini dengan pesan yang jelas.
+    if (file.size > BATAS_UNGGAH) {
+      setErr(
+        `Berkas ${fmtSize(file.size)} melebihi batas ${fmtSize(BATAS_UNGGAH)} per unggahan. ` +
+          'Perkecil berkas (mis. simpan sebagai PDF/CSV) atau pecah per periode.',
+      )
+      return
+    }
+    setUploading(true)
     const res = await uploadKprReport(proyek, file, {
       judul,
       periode,
@@ -576,6 +597,8 @@ function ReportPanel({
     if (res.ok) {
       setJudul('')
       setPeriode('')
+      setBuka(true)
+      setSukses(`"${res.filename ?? file.name}" tersimpan di arsip report.`)
       onChanged()
     } else {
       setErr(res.error ?? 'Upload gagal.')
@@ -684,6 +707,30 @@ function ReportPanel({
       {err && (
         <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 700, color: C.late }}>{err}</div>
       )}
+      {sukses && (
+        <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 700, color: C.done }}>{sukses}</div>
+      )}
+      {gagalMuat && (
+        <div
+          style={{
+            marginTop: 10,
+            padding: '9px 12px',
+            borderRadius: 9,
+            background: '#FFFBEB',
+            border: '1px solid #FDE68A',
+            fontSize: 11.5,
+            fontWeight: 600,
+            color: '#92400E',
+          }}
+        >
+          Daftar report gagal dimuat — arsip di bawah mungkin tidak lengkap. Periksa koneksi
+          database (Neon) di Vercel, lalu muat ulang halaman.
+        </div>
+      )}
+      <div style={{ marginTop: 8, fontSize: 11, fontWeight: 600, color: '#9CA3AF' }}>
+        Maksimal {fmtSize(BATAS_UNGGAH)} per berkas (batas body serverless Vercel). Isi judul dan
+        periode sebelum memilih berkas — keduanya ikut tersimpan.
+      </div>
 
       {buka && (
         <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
