@@ -20,7 +20,7 @@ import {
   upsertKprBerkas,
 } from './_lib/db.js'
 import { getProjects, getTagihanTerkirim, insertTagihanReminder } from './_lib/db.js'
-import { kirimEmail, reminderFrom, resendKey } from './_lib/mailer.js'
+import { kirimEmail, penyedia, reminderFrom } from './_lib/mailer.js'
 import { reminderJatuhTempo, tagihanJatuhTempo, tautanWa } from './_lib/reminder.js'
 import { ambilSheet, sheetUrl, sudahBayar } from './_lib/sheet.js'
 import { fail, methodNotAllowed, readRawBody, sendFile } from './_lib/http.js'
@@ -292,7 +292,8 @@ async function reminder(req: VercelRequest, res: VercelResponse) {
     return fail(res, 401, 'Tidak berwenang memanggil penjadwal reminder.')
   }
 
-  const dry = req.query.dry != null || !resendKey()
+  const jalur = penyedia()
+  const dry = req.query.dry != null || jalur === 'none'
   const [daftar, projects] = await Promise.all([getKprBerkas(), getProjects()])
   const namaProyek = new Map(projects.map((p) => [String(p.id), String(p.nama)]))
   const antre = reminderJatuhTempo(daftar, namaProyek, new Date())
@@ -304,7 +305,11 @@ async function reminder(req: VercelRequest, res: VercelResponse) {
       ok: true,
       terkirim: 0,
       dry: true,
-      alasan: resendKey() ? 'Dijalankan sebagai uji coba (dry).' : 'RESEND_API_KEY belum di-set.',
+      alasan:
+        jalur === 'none'
+          ? 'Belum ada jalur email — set GMAIL_USER + GMAIL_APP_PASSWORD, atau RESEND_API_KEY.'
+          : 'Dijalankan sebagai uji coba (dry).',
+      jalur,
       dokumen: antre.map(ringkas),
       tagihan,
     })

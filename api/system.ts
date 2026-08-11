@@ -1,6 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { blobToken, databaseUrl, openaiKey } from './_lib/env.js'
-import { reminderFrom, resendKey } from './_lib/mailer.js'
+import {
+  gmailUser,
+  penyedia,
+  pesanGalatSmtp,
+  reminderFrom,
+  resendKey,
+  smtp,
+} from './_lib/mailer.js'
 import { ambilSheet, sheetUrl } from './_lib/sheet.js'
 import { db, ensureReady, ensureSchema, getItems, getPermits, getProjects, hasDb } from './_lib/db.js'
 import { fail, methodNotAllowed } from './_lib/http.js'
@@ -79,57 +86,14 @@ async function health(res: VercelResponse) {
 }
 
 /**
- * Kesiapan penjadwal reminder: kunci Resend benar-benar dipakai untuk memanggil
- * Resend (bukan sekadar dicek keberadaannya), status verifikasi domain
- * pengirim, dan apakah Google Sheet-nya sudah bisa dibaca.
+ * Kesiapan penjadwal reminder: jalur email yang aktif benar-benar dicoba
+ * (login SMTP ke Google, atau panggilan ke Resend — bukan sekadar mengecek
+ * variabelnya ada), lalu apakah Google Sheet-nya sudah bisa dibaca.
  */
 async function cekReminder() {
-  const key = resendKey()
-  const from = reminderFrom()
-  const domainPengirim = (from.match(/@([^>\s]+)/)?.[1] ?? '').toLowerCase()
-
-  const resend: Record<string, unknown> = {
-    configured: !!key,
-    ok: false,
-    detail: key ? '' : 'RESEND_API_KEY belum di-set — penjadwal berjalan tapi tidak mengirim.',
-    from,
-  }
-
-  if (key) {
-    try {
-      const r = await fetch('https://api.resend.com/domains', {
-        headers: { Authorization: `Bearer ${key}` },
-      })
-      if (r.status === 401 || r.status === 403) {
-        resend.detail = 'Kunci ditolak Resend (401/403) — periksa nilai RESEND_API_KEY.'
-      } else if (!r.ok) {
-        resend.detail = `Resend membalas HTTP ${r.status}.`
-      } else {
-        const body = (await r.json().catch(() => null)) as { data?: unknown[] } | null
-        const daftar = Array.isArray(body?.data) ? (body!.data as Record<string, unknown>[]) : []
-        const domains = daftar.map((d) => ({
-          name: String(d.name ?? ''),
-          status: String(d.status ?? ''),
-        }))
-        resend.domains = domains
-        const cocok = domains.find((d) => d.name.toLowerCase() === domainPengirim)
-        if (!domainPengirim) {
-          resend.detail = 'Kunci valid, tapi alamat pengirim tidak terbaca.'
-        } else if (!cocok) {
-          resend.detail =
-            `Kunci valid, tapi domain "${domainPengirim}" belum terdaftar di Resend. ` +
-            'Tambahkan lewat Domains → Add Domain lalu pasang catatan DNS-nya.'
-        } else if (cocok.status !== 'verified') {
-          resend.detail = `Kunci valid, domain "${domainPengirim}" berstatus "${cocok.status}" — belum terverifikasi, kiriman akan ditolak.`
-        } else {
-          resend.ok = true
-          resend.detail = `Siap mengirim atas nama ${domainPengirim} (terverifikasi).`
-        }
-      }
-    } catch (e) {
-      resend.detail = `Gagal menghubungi Resend: ${(e as Error).message}`
-    }
-  }
+  const jalur = penyedia()
+  const email =
+    jalur === 'gmail' ? await cekGmail() : jalur === 'resend' ? await cekResend() : belumAdaJalur()
 
   const cron = {
     configured: !!process.env.CRON_SECRET,
@@ -155,11 +119,110 @@ async function cekReminder() {
   }
 
   return {
-    siapKirim: resend.ok === true && hasil.ok,
-    resend,
+    siapKirim: email.ok && hasil.ok,
+    email,
     cron,
     sheet,
   }
+}
+
+interface CekEmail {
+  jalur: string
+  ok: boolean
+  detail: string
+  from: string
+  [k: string]: unknown
+}
+
+function belumAdaJalur(): CekEmail {
+  return {
+    jalur: 'none',
+    ok: false,
+    from: reminderFrom(),
+    detail:
+      'Belum ada jalur email. Pilih salah satu: GMAIL_USER + GMAIL_APP_PASSWORD (Google), ' +
+      'atau RESEND_API_KEY. Tanpa itu penjadwal tetap jalan tapi tidak mengirim.',
+  }
+}
+
+/**
+ * Login SMTP sungguhan ke smtp.gmail.com. Ini yang membedakan "App Password
+ * sudah dipasang" dari "App Password diterima Google" — App Password yang
+ * salah ketik atau dicabut baru ketahuan di sini, bukan nanti jam 12:00.
+ */
+async function cekGmail(): Promise<CekEmail> {
+  const akun = gmailUser()!
+  const from = reminderFrom()
+  const alamatFrom = (from.match(/<([^>]+)>/)?.[1] ?? from).trim().toLowerCase()
+  const hasil: CekEmail = { jalur: 'gmail', ok: false, detail: '', from, akun }
+
+  try {
+    await smtp().verify()
+  } catch (e) {
+    hasil.detail = pesanGalatSmtp(e as Error)
+    return hasil
+  }
+
+  // Google menolak alamat pengirim yang bukan akunnya sendiri atau alias
+  // "Send mail as" yang sudah diverifikasi — itu tidak bisa diperiksa lewat
+  // SMTP, jadi cukup diperingatkan agar tidak mengejutkan saat pengiriman.
+  if (alamatFrom !== akun.toLowerCase()) {
+    hasil.ok = true
+    hasil.peringatan =
+      `Login diterima sebagai ${akun}, tapi alamat pengirim disetel ke ${alamatFrom}. ` +
+      'Google hanya mengizinkannya bila alamat itu sudah terdaftar di Gmail → ' +
+      'Setelan → Akun → "Kirim email sebagai" dan sudah diverifikasi.'
+    hasil.detail = `Login Google diterima untuk ${akun}.`
+    return hasil
+  }
+
+  hasil.ok = true
+  hasil.detail = `Login Google diterima — siap mengirim atas nama ${akun}.`
+  return hasil
+}
+
+/** Kunci Resend dipakai memanggil Resend, plus status verifikasi domainnya. */
+async function cekResend(): Promise<CekEmail> {
+  const from = reminderFrom()
+  const domainPengirim = (from.match(/@([^>\s]+)/)?.[1] ?? '').toLowerCase()
+  const hasil: CekEmail = { jalur: 'resend', ok: false, detail: '', from }
+
+  try {
+    const r = await fetch('https://api.resend.com/domains', {
+      headers: { Authorization: `Bearer ${resendKey()}` },
+    })
+    if (r.status === 401 || r.status === 403) {
+      hasil.detail = 'Kunci ditolak Resend (401/403) — periksa nilai RESEND_API_KEY.'
+      return hasil
+    }
+    if (!r.ok) {
+      hasil.detail = `Resend membalas HTTP ${r.status}.`
+      return hasil
+    }
+    const body = (await r.json().catch(() => null)) as { data?: unknown[] } | null
+    const daftar = Array.isArray(body?.data) ? (body!.data as Record<string, unknown>[]) : []
+    const domains = daftar.map((d) => ({
+      name: String(d.name ?? ''),
+      status: String(d.status ?? ''),
+    }))
+    hasil.domains = domains
+    const cocok = domains.find((d) => d.name.toLowerCase() === domainPengirim)
+    if (!domainPengirim) {
+      hasil.detail = 'Kunci valid, tapi alamat pengirim tidak terbaca.'
+    } else if (!cocok) {
+      hasil.detail =
+        `Kunci valid, tapi domain "${domainPengirim}" belum terdaftar di Resend. ` +
+        'Tambahkan lewat Domains → Add Domain lalu pasang catatan DNS-nya.'
+    } else if (cocok.status !== 'verified') {
+      hasil.detail = `Kunci valid, domain "${domainPengirim}" berstatus "${cocok.status}" — belum terverifikasi, kiriman akan ditolak.`
+    } else {
+      hasil.ok = true
+      hasil.detail = `Siap mengirim atas nama ${domainPengirim} (terverifikasi).`
+    }
+  } catch (e) {
+    hasil.detail = `Gagal menghubungi Resend: ${(e as Error).message}`
+  }
+  return hasil
 }
 
 /**
