@@ -19,9 +19,10 @@ import {
   updateKprDokumen,
   upsertKprBerkas,
 } from './_lib/db.js'
-import { getProjects } from './_lib/db.js'
-import { kirimEmail, resendKey } from './_lib/mailer.js'
-import { reminderJatuhTempo } from './_lib/reminder.js'
+import { getProjects, getTagihanTerkirim, insertTagihanReminder } from './_lib/db.js'
+import { kirimEmail, reminderFrom, resendKey } from './_lib/mailer.js'
+import { reminderJatuhTempo, tagihanJatuhTempo, tautanWa } from './_lib/reminder.js'
+import { ambilSheet, sheetUrl, sudahBayar } from './_lib/sheet.js'
 import { fail, methodNotAllowed, readRawBody, sendFile } from './_lib/http.js'
 
 // Berkas report diunggah sebagai raw body, jadi parser bawaan dimatikan dan
@@ -83,8 +84,9 @@ async function body(req: VercelRequest): Promise<Record<string, unknown>> {
  * DELETE /api/collection?report=4              → hapus satu report
  *
  * Penjadwal reminder harian (dipanggil Vercel Cron):
- * GET    /api/collection?action=reminder       → kirim reminder yang jatuh tempo
+ * GET    /api/collection?action=reminder       → kirim reminder dokumen + tagihan
  * GET    /api/collection?action=reminder&dry=1 → hanya laporkan, tanpa mengirim
+ * GET    /api/collection?action=sheet          → diagnosa pembacaan Google Sheet
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!hasDb()) {
@@ -95,7 +97,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await ensureSchema()
 
     if (req.method === 'GET') {
-      if (String(req.query.action ?? '') === 'reminder') return reminder(req, res)
+      const aksi = String(req.query.action ?? '')
+      if (aksi === 'reminder') return reminder(req, res)
+      if (aksi === 'sheet') return diagnosaSheet(res)
       const proyek = req.query.proyek ? String(req.query.proyek) : undefined
       if (req.query.download != null) {
         const id = Number(req.query.download)
@@ -293,13 +297,16 @@ async function reminder(req: VercelRequest, res: VercelResponse) {
   const namaProyek = new Map(projects.map((p) => [String(p.id), String(p.nama)]))
   const antre = reminderJatuhTempo(daftar, namaProyek, new Date())
 
+  const tagihan = await reminderTagihan(dry)
+
   if (dry) {
     return res.status(200).json({
       ok: true,
       terkirim: 0,
       dry: true,
       alasan: resendKey() ? 'Dijalankan sebagai uji coba (dry).' : 'RESEND_API_KEY belum di-set.',
-      jatuhTempo: antre.map(ringkas),
+      dokumen: antre.map(ringkas),
+      tagihan,
     })
   }
 
@@ -328,7 +335,116 @@ async function reminder(req: VercelRequest, res: VercelResponse) {
     hasil.push({ ...ringkas(item), status: 'terkirim' })
   }
 
-  return res.status(200).json({ ok: true, terkirim, total: antre.length, hasil })
+  return res.status(200).json({
+    ok: true,
+    dokumen: { terkirim, total: antre.length, hasil },
+    tagihan,
+  })
+}
+
+/**
+ * Diagnosa pembacaan Google Sheet: kolom apa yang dikenali, berapa baris
+ * terbaca, dan baris mana yang tanggalnya gagal diurai. Dipakai untuk
+ * memastikan pemetaan kolomnya benar sebelum reminder dikirim ke konsumen.
+ */
+async function diagnosaSheet(res: VercelResponse) {
+  const hasil = await ambilSheet()
+  if (!hasil.ok) {
+    return res.status(200).json({ ok: false, url: hasil.url, error: hasil.error })
+  }
+  return res.status(200).json({
+    ok: true,
+    url: hasil.url,
+    header: hasil.header,
+    kolomDikenali: hasil.kolom,
+    kolomHilang: hasil.hilang,
+    jumlahBaris: hasil.baris.length,
+    adaTanggalAmbigu: hasil.adaTanggalAmbigu,
+    catatanTanggal: hasil.adaTanggalAmbigu
+      ? 'Ada tanggal berformat d/m/y dengan kedua angka ≤ 12. Dibaca hari-bulan (kebiasaan Indonesia) — pastikan benar.'
+      : undefined,
+    tanggalGagal: hasil.tanggalGagal.slice(0, 20),
+    contoh: hasil.baris.slice(0, 5),
+  })
+}
+
+/**
+ * Reminder tagihan dari Google Sheet.
+ *
+ * Sheet dibaca ulang tiap kali penjadwal berjalan, jadi perubahan di sheet
+ * langsung terpakai keesokan harinya. Email dikirim otomatis; WhatsApp tidak
+ * bisa dikirim sendiri, jadi tautan wa.me-nya dirangkum dalam satu email
+ * ringkasan ke petugas agar tetap bisa dikirim hari itu juga dengan satu ketuk.
+ */
+async function reminderTagihan(dry: boolean) {
+  const sheet = await ambilSheet()
+  if (!sheet.ok) return { ok: false, error: sheet.error, url: sheet.url, terkirim: 0, antre: [] }
+
+  const terkirim = await getTagihanTerkirim()
+  const antre = tagihanJatuhTempo(sheet.baris, terkirim, new Date(), sudahBayar)
+  const ringkasan = antre.map((t) => ({
+    baris: t.baris,
+    nama: t.nama,
+    unit: t.unit,
+    tingkat: t.tingkat.nama,
+    lewatHari: t.lewat,
+    jatuhTempo: t.jatuhTempo,
+    nominal: t.nominal,
+    email: t.email || null,
+    whatsapp: t.telepon ? tautanWa(t.telepon, t.pesan) : null,
+  }))
+
+  if (dry) return { ok: true, dry: true, url: sheet.url, terkirim: 0, antre: ringkasan }
+
+  let dikirim = 0
+  const hasil: Record<string, unknown>[] = []
+  for (const t of antre) {
+    if (!t.email) {
+      hasil.push({ ...ringkas2(t), status: 'dilewati', alasan: 'email konsumen kosong di sheet' })
+      continue
+    }
+    const kirim = await kirimEmail({ to: t.email, subject: t.subjek, text: t.pesan })
+    if (!kirim.ok) {
+      hasil.push({ ...ringkas2(t), status: 'gagal', alasan: kirim.error })
+      continue
+    }
+    await insertTagihanReminder({
+      kunci: t.kunci,
+      tingkat: t.tingkat.tingkat,
+      kanal: 'Email (otomatis)',
+      tujuan: t.email,
+      nama: t.nama,
+      unit: t.unit,
+      pesan: t.pesan,
+    })
+    dikirim += 1
+    hasil.push({ ...ringkas2(t), status: 'terkirim' })
+  }
+
+  // Ringkasan harian ke petugas, berisi tautan WhatsApp siap ketuk.
+  const perluWa = antre.filter((t) => t.telepon)
+  if (perluWa.length) {
+    const badan = perluWa
+      .map(
+        (t) =>
+          `${t.nama} — ${t.unit} · ${t.tingkat.nama} · jatuh tempo ${t.jatuhTempo}\n` +
+          `Kirim WhatsApp: ${tautanWa(t.telepon, t.pesan)}`,
+      )
+      .join('\n\n')
+    await kirimEmail({
+      to: reminderFrom().replace(/^.*<|>$/g, ''),
+      subject: `Reminder tagihan hari ini — ${perluWa.length} konsumen perlu WhatsApp`,
+      text:
+        `${perluWa.length} konsumen jatuh tempo hari ini. Email sudah dikirim otomatis bila alamatnya ada; ` +
+        `WhatsApp perlu dikirim manual lewat tautan berikut.\n\n${badan}`,
+    })
+  }
+
+  return { ok: true, url: sheet.url, terkirim: dikirim, total: antre.length, hasil }
+}
+
+function ringkas2(t: { baris: number; nama: string; unit: string; tingkat: { nama: string }; lewat: number }) {
+  return { baris: t.baris, nama: t.nama, unit: t.unit, tingkat: t.tingkat.nama, lewatHari: t.lewat }
 }
 
 /** Ringkasan satu reminder untuk badan respons penjadwal. */

@@ -133,6 +133,46 @@ Env var yang dibutuhkan agar penjadwal benar-benar mengirim:
 Uji coba tanpa mengirim apa pun: `GET /api/collection?action=reminder&dry=1` mengembalikan daftar
 jatuh tempo hari ini beserta tingkat, keterlambatan, dan dokumen yang kurang.
 
+### Reminder pembayaran dari Google Sheet
+
+Jadwal pembayaran dibaca dari Google Sheet yang dipublikasikan (`api/_lib/sheet.ts`), tanpa
+kredensial: sheet diminta sebagai CSV lewat `export?format=csv`. Syaratnya sheet dibagikan sebagai
+"Siapa saja yang memiliki link" atau dipublikasikan lewat **File → Bagikan → Publikasikan ke web**.
+
+> **Konsekuensi privasi.** Dengan cara ini siapa pun yang mengetahui tautannya dapat membaca nama,
+> nomor telepon, dan nominal konsumen. Bila itu tidak dikehendaki, ganti pembacanya ke Google Sheets
+> API dengan service account — hanya `ambilSheet()` yang perlu diubah.
+
+**Susunan kolom tidak dipatok.** Header dicocokkan dengan daftar alias, jadi `Nama Konsumen`,
+`CUSTOMER`, dan `Nama Pembeli` sama-sama dikenali sebagai nama; begitu pula `Jatuh Tempo` /
+`TGL JATUH TEMPO` / `Due Date`. Kolom yang dikenali dan yang tidak ditemukan dilaporkan lewat
+`GET /api/collection?action=sheet`, bersama jumlah baris, contoh lima baris pertama, dan baris yang
+tanggalnya gagal diurai — pakai endpoint itu untuk memastikan pemetaannya benar sebelum reminder
+dikirim ke konsumen.
+
+Tanggal diterima dalam bentuk `2026-08-04`, `04/08/2026`, `4-8-26`, dan `4 Agustus 2026`. Bentuk
+`d/m/y` dibaca **hari lebih dulu** sesuai kebiasaan Indonesia; bila kedua angkanya ≤ 12 hasilnya
+ambigu dan ditandai `adaTanggalAmbigu` agar diperiksa manusia. Nominal menerima `Rp 15.000.000`
+maupun `1,500,000`. Baris berstatus lunas/sudah bayar/paid dilewati.
+
+Tangga reminder tagihan dihitung terhadap **tanggal jatuh tempo**:
+
+| Tingkat | Jadwal |
+| --- | --- |
+| Pengingat | H-3 |
+| Hari jatuh tempo | H |
+| Terlambat | H+3 |
+| Eskalasi | H+7 |
+
+Email ke konsumen dikirim otomatis oleh penjadwal harian yang sama. WhatsApp tidak bisa dikirim
+sendiri, jadi tautan `wa.me` untuk semua konsumen yang jatuh tempo hari itu dirangkum dalam satu
+email ringkasan ke petugas — tetap terkirim hari itu juga, cukup satu ketuk per konsumen.
+Pengiriman yang berhasil dicatat di tabel `tagihan_reminder` dengan kunci `nama|unit|jatuh tempo`,
+sehingga satu termin tidak pernah dikejar dua kali pada tingkat yang sama.
+
+Env var terkait: `SHEET_TAGIHAN_URL` (URL CSV penuh) atau `SHEET_TAGIHAN_ID` + `SHEET_TAGIHAN_GID`.
+Bila tidak di-set, dipakai sheet bawaan yang tertulis di `api/_lib/sheet.ts`.
+
 > **WhatsApp masih manual.** Pengiriman WhatsApp tetap satu klik lewat `wa.me`. Otomatisasinya
 > butuh akun WhatsApp Business API resmi beserta template yang disetujui Meta — nomor pribadi lewat
 > gateway tidak resmi melanggar ketentuan WhatsApp dan berisiko diblokir permanen.

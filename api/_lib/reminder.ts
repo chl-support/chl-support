@@ -8,6 +8,7 @@
  * Bila teksnya diubah di satu tempat, ubah juga di tempat lain.
  */
 import type { KprBerkasRow } from './db.js'
+import type { BarisTagihan } from './sheet.js'
 
 export interface TingkatReminder {
   tingkat: number
@@ -158,3 +159,141 @@ export function reminderJatuhTempo(
   // Paling lama terlambat dikerjakan lebih dulu.
   return hasil.sort((a, b) => b.lewat - a.lewat)
 }
+
+
+// ---- Reminder pembayaran (sumber: Google Sheet) ----
+
+/**
+ * Tangga reminder tagihan, dihitung terhadap **tanggal jatuh tempo**.
+ * Tingkat 0 memakai tanggal pembayaran yang dijadwalkan bila ada; sisanya
+ * mengikuti jatuh tempo. Ubah `hari` di sini untuk menggeser jadwalnya.
+ */
+export const TANGGA_TAGIHAN: TingkatReminder[] = [
+  {
+    tingkat: 0,
+    nama: 'Pengingat H-3',
+    hari: -3,
+    subjek: 'Pengingat pembayaran {unit} — jatuh tempo {tenggat}',
+    template:
+      'Selamat pagi Bapak/Ibu {nama}, kami dari tim Collection {proyek}. ' +
+      'Mengingatkan pembayaran untuk unit {unit} sebesar {nominal} jatuh tempo pada {tenggat} ({hari} hari lagi). ' +
+      'Mohon dapat diselesaikan sebelum tanggal tersebut. Terima kasih. — {pic}',
+  },
+  {
+    tingkat: 1,
+    nama: 'Hari jatuh tempo',
+    hari: 0,
+    subjek: 'Hari ini jatuh tempo pembayaran {unit}',
+    template:
+      'Selamat pagi Bapak/Ibu {nama}, hari ini ({tenggat}) adalah jatuh tempo pembayaran unit {unit} ' +
+      'sebesar {nominal}. Mohon pembayaran dapat diselesaikan hari ini. ' +
+      'Bila sudah ditransfer, mohon kirimkan bukti transfernya kepada kami. Terima kasih. — {pic}',
+  },
+  {
+    tingkat: 2,
+    nama: 'Terlambat 3 hari',
+    hari: 3,
+    subjek: 'Pembayaran {unit} terlambat {hari} hari',
+    template:
+      'Bapak/Ibu {nama}, pembayaran unit {unit} sebesar {nominal} sudah {hari} hari melewati jatuh tempo {tenggat} ' +
+      'dan belum kami terima. Mohon konfirmasi kapan pembayaran dapat diselesaikan, ' +
+      'atau kirimkan bukti transfer bila sudah dibayarkan. — {pic}',
+  },
+  {
+    tingkat: 3,
+    nama: 'Eskalasi',
+    hari: 7,
+    subjek: 'Eskalasi: pembayaran {unit} tertunggak {hari} hari',
+    template:
+      'Bapak/Ibu {nama}, sampai hari ini pembayaran unit {unit} sebesar {nominal} tertunggak {hari} hari ' +
+      'sejak jatuh tempo {tenggat}. Berkas Bapak/Ibu kami eskalasi ke supervisor Collection untuk ditinjau. ' +
+      'Mohon segera menghubungi kami hari ini. — {pic}',
+  },
+]
+
+/** `15000000` → `Rp 15.000.000`; 0 → `-`. */
+function rupiah(n: number): string {
+  if (!n) return '-'
+  return 'Rp ' + n.toLocaleString('id-ID')
+}
+
+export interface TagihanJatuhTempo {
+  kunci: string
+  baris: number
+  nama: string
+  unit: string
+  telepon: string
+  email: string
+  nominal: number
+  jatuhTempo: string
+  tingkat: TingkatReminder
+  lewat: number
+  subjek: string
+  pesan: string
+}
+
+/**
+ * Tagihan yang remindernya jatuh tempo hari ini.
+ *
+ * Baris yang statusnya sudah lunas, tidak punya jatuh tempo, atau tingkatnya
+ * sudah pernah dikirim (menurut `terkirim`) dilewati — sehingga satu termin
+ * tidak pernah dikejar dua kali pada tingkat yang sama.
+ */
+export function tagihanJatuhTempo(
+  baris: BarisTagihan[],
+  terkirim: Map<string, number>,
+  sekarang: Date,
+  lunas: (status: string) => boolean,
+): TagihanJatuhTempo[] {
+  const hasil: TagihanJatuhTempo[] = []
+
+  for (const b of baris) {
+    if (!b.jatuhTempo) continue
+    if (lunas(b.status)) continue
+
+    const lewat = lewatHari(b.jatuhTempo, sekarang)
+    const jt = TANGGA_TAGIHAN.filter((t) => lewat >= t.hari).sort((a, c) => c.tingkat - a.tingkat)[0]
+    if (!jt) continue
+    if (jt.tingkat <= (terkirim.get(b.kunci) ?? -1)) continue
+
+    const isi: Record<string, string> = {
+      nama: b.nama || 'Bapak/Ibu',
+      unit: b.unit || '-',
+      proyek: b.proyek || 'Cipta Harmoni Lestari',
+      nominal: rupiah(b.nominal),
+      tenggat: fmtTgl(b.jatuhTempo),
+      hari: String(Math.abs(lewat)),
+      pic: PENGIRIM_NAMA,
+    }
+
+    hasil.push({
+      kunci: b.kunci,
+      baris: b.baris,
+      nama: b.nama,
+      unit: b.unit,
+      telepon: b.telepon,
+      email: b.email,
+      nominal: b.nominal,
+      jatuhTempo: b.jatuhTempo,
+      tingkat: jt,
+      lewat,
+      subjek: isiTemplate(jt.subjek, isi),
+      pesan: isiTemplate(jt.template, isi),
+    })
+  }
+
+  return hasil.sort((a, b) => b.lewat - a.lewat)
+}
+
+/** `08xx` → `628xx`, agar bisa dipakai pada tautan wa.me. */
+export function nomorWa(telepon: string): string {
+  const angka = (telepon || '').replace(/\D/g, '')
+  if (!angka) return ''
+  if (angka.startsWith('62')) return angka
+  if (angka.startsWith('0')) return '62' + angka.slice(1)
+  if (angka.startsWith('8')) return '62' + angka
+  return angka
+}
+
+export const tautanWa = (telepon: string, pesan: string): string =>
+  `https://wa.me/${nomorWa(telepon)}?text=${encodeURIComponent(pesan)}`
