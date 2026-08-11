@@ -1,0 +1,188 @@
+import { useEffect, useState } from 'react'
+import { A, C } from '@/data/constants'
+import { fetchHealth, type ReminderStatus } from '@/lib/api'
+
+/**
+ * Ringkasan kesiapan pengiriman reminder otomatis, dibaca dari `/api/health`.
+ *
+ * Isinya sama dengan JSON di endpoint itu, tapi disajikan sebagai kalimat —
+ * pemasangan kunci pengirim dilakukan di dasbor Vercel oleh orang yang tidak
+ * membaca JSON, dan tanpa panel ini satu-satunya cara memastikan penjadwal
+ * benar-benar bisa mengirim adalah menunggu jam 12.00 dan melihat apakah ada
+ * email yang keluar.
+ */
+export function StatusReminder() {
+  const [data, setData] = useState<ReminderStatus | null>(null)
+  const [gagal, setGagal] = useState(false)
+  const [memuat, setMemuat] = useState(true)
+  const [buka, setBuka] = useState(false)
+
+  const muat = () => {
+    setMemuat(true)
+    fetchHealth()
+      .then((h) => {
+        // Deployment lama belum mengirim blok `reminder`; itu bukan kegagalan
+        // koneksi, jadi dibedakan dari health yang tidak terjawab sama sekali.
+        setData(h?.reminder ?? null)
+        setGagal(!h)
+      })
+      .finally(() => setMemuat(false))
+  }
+
+  useEffect(muat, [])
+
+  if (memuat && !data) return null
+
+  const siap = !!data?.siapKirim
+  const warna = gagal || !data ? '#9CA3AF' : siap ? C.done : C.due
+  const judul = gagal
+    ? 'Status pengiriman tidak terbaca'
+    : !data
+      ? 'Status pengiriman belum tersedia'
+      : siap
+        ? 'Reminder otomatis siap kirim'
+        : 'Reminder otomatis belum bisa mengirim'
+
+  return (
+    <div
+      data-testid="status-reminder"
+      style={{
+        border: '1px solid #E5E7EB',
+        borderLeft: `3px solid ${warna}`,
+        borderRadius: 'var(--radius-card)',
+        background: '#fff',
+        padding: '12px 14px',
+        marginBottom: 14,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <span
+          aria-hidden
+          style={{ width: 8, height: 8, borderRadius: 999, background: warna, flexShrink: 0 }}
+        />
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{judul}</span>
+        {data && (
+          <span style={{ fontSize: 11.5, color: '#6B7280' }}>· {data.cron.jadwal}</span>
+        )}
+        <div style={{ flex: 1 }} />
+        <button
+          type="button"
+          onClick={muat}
+          style={tombol}
+          disabled={memuat}
+        >
+          {memuat ? 'Memeriksa…' : 'Periksa ulang'}
+        </button>
+        {data && (
+          <button type="button" onClick={() => setBuka((v) => !v)} style={tombol}>
+            {buka ? 'Sembunyikan' : 'Rincian'}
+          </button>
+        )}
+      </div>
+
+      {gagal && (
+        <p style={keterangan}>
+          Tidak bisa menghubungi server. Coba muat ulang halaman; kalau tetap gagal, deployment-nya
+          sedang bermasalah.
+        </p>
+      )}
+
+      {!gagal && !data && (
+        <p style={keterangan}>
+          Deployment yang aktif belum memuat pemeriksaan ini. Jalankan Redeploy di Vercel, lalu tekan
+          Periksa ulang.
+        </p>
+      )}
+
+      {data && !buka && !siap && <p style={keterangan}>{ringkasKendala(data)}</p>}
+
+      {data && buka && (
+        <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
+          <Baris
+            label="Jalur email"
+            ok={data.email.ok}
+            detail={data.email.detail}
+            catatan={data.email.catatan}
+            ekstra={`Pengirim: ${data.email.from}`}
+          />
+          <Baris label="Penjadwal harian" ok={data.cron.ok} detail={data.cron.detail} />
+          <Baris
+            label="Google Sheet"
+            ok={data.sheet.ok}
+            detail={data.sheet.detail}
+            catatan={
+              data.sheet.kolomHilang?.length
+                ? `Kolom belum dikenali: ${data.sheet.kolomHilang.join(', ')}.`
+                : undefined
+            }
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Kendala pertama yang menghalangi pengiriman — yang perlu dibereskan duluan. */
+function ringkasKendala(d: ReminderStatus): string {
+  if (!d.email.ok) return d.email.detail
+  if (!d.sheet.ok) return d.sheet.detail
+  return 'Belum siap mengirim.'
+}
+
+function Baris({
+  label,
+  ok,
+  detail,
+  catatan,
+  ekstra,
+}: {
+  label: string
+  ok: boolean
+  detail: string
+  catatan?: string
+  ekstra?: string
+}) {
+  return (
+    <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+      <span
+        style={{
+          fontSize: 11,
+          fontWeight: 800,
+          color: ok ? C.done : C.due,
+          width: 16,
+          flexShrink: 0,
+          lineHeight: '17px',
+        }}
+      >
+        {ok ? '✓' : '!'}
+      </span>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 11.5, fontWeight: 700, color: '#374151' }}>{label}</div>
+        <div style={{ fontSize: 11.5, color: '#6B7280', wordBreak: 'break-word' }}>{detail}</div>
+        {ekstra && <div style={{ fontSize: 11, color: '#9CA3AF' }}>{ekstra}</div>}
+        {catatan && (
+          <div style={{ fontSize: 11, color: C.due, marginTop: 2 }}>{catatan}</div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+const keterangan = {
+  margin: '8px 0 0',
+  fontSize: 11.5,
+  color: '#6B7280',
+  lineHeight: 1.5,
+} as const
+
+const tombol = {
+  height: 26,
+  padding: '0 11px',
+  border: '1px solid #E5E7EB',
+  borderRadius: 'var(--radius-pill)',
+  background: '#fff',
+  color: A,
+  fontSize: 11,
+  fontWeight: 700,
+  cursor: 'pointer',
+} as const

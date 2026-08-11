@@ -22,6 +22,7 @@ import {
 } from '@/lib/followup'
 import { FollowupPanel } from '@/components/FollowupPanel'
 import { KprDialog } from '@/components/KprDialog'
+import { StatusReminder } from '@/components/StatusReminder'
 
 interface CollectionProps {
   proyekAktif: Project
@@ -271,6 +272,8 @@ export function Collection({ proyekAktif }: CollectionProps) {
           </div>
         ))}
       </div>
+
+      <StatusReminder />
 
       <ReportPanel
         proyek={proyekAktif.id}

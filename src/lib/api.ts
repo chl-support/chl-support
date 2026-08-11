@@ -24,10 +24,32 @@ export interface HealthCheck {
   ok: boolean
   detail: string
 }
+/** Hasil pemeriksaan satu jalur email; `catatan` hanya muncul bila relevan. */
+export interface ReminderEmail {
+  jalur: 'gmail' | 'resend' | 'none'
+  ok: boolean
+  detail: string
+  from: string
+  akun?: string
+  catatan?: string
+}
+export interface ReminderSheet {
+  ok: boolean
+  url: string
+  detail: string
+  kolomHilang?: string[]
+}
+export interface ReminderStatus {
+  siapKirim: boolean
+  email: ReminderEmail
+  cron: { ok: boolean; detail: string; jadwal: string }
+  sheet: ReminderSheet
+}
 export interface Health {
   ok: boolean
   ready: boolean
   checks: { neon: HealthCheck; blob: HealthCheck; openai: HealthCheck }
+  reminder?: ReminderStatus
 }
 
 export interface Bootstrap {
