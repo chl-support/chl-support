@@ -79,24 +79,57 @@ export type Kolom =
   | 'email'
   | 'proyek'
   | 'tglBayar'
-  | 'jatuhTempo'
+  | 'jatuhTempoDokumen'
+  | 'jatuhTempoAkad'
   | 'nominal'
   | 'status'
 
 /** Alias header per kolom, sudah dinormalkan (huruf kecil, tanpa non-alfanumerik). */
 const ALIAS: Record<Kolom, string[]> = {
   nama: ['nama', 'namakonsumen', 'namacustomer', 'namapembeli', 'customer', 'konsumen', 'debitur', 'pembeli'],
-  unit: ['unit', 'nounit', 'kavling', 'nokavling', 'blok', 'noblok', 'unitkavling', 'rumah'],
-  telepon: ['whatsapp', 'nowhatsapp', 'wa', 'nowa', 'nohp', 'hp', 'telepon', 'notelepon', 'telp', 'notelp', 'kontak'],
+  unit: ['blokunit', 'unit', 'nounit', 'kavling', 'nokavling', 'blok', 'noblok', 'unitkavling', 'rumah'],
+  telepon: [
+    'notlp', 'tlp', 'nohp', 'hp', 'whatsapp', 'nowhatsapp', 'wa', 'nowa', 'telepon', 'notelepon',
+    'telp', 'notelp', 'nomortelepon', 'kontak',
+  ],
   email: ['email', 'alamatemail', 'surel', 'emailkonsumen'],
   proyek: ['proyek', 'project', 'perumahan', 'cluster', 'lokasi'],
-  tglBayar: ['tanggalpembayaran', 'tglpembayaran', 'tanggalbayar', 'tglbayar', 'tanggaltransfer', 'paymentdate', 'tanggalangsuran'],
-  jatuhTempo: ['jatuhtempo', 'tanggaljatuhtempo', 'tgljatuhtempo', 'jatuhtempopembayaran', 'duedate', 'tempo'],
-  nominal: ['nominal', 'jumlah', 'jumlahtagihan', 'angsuran', 'tagihan', 'nilai', 'amount', 'besarangsuran'],
+  tglBayar: [
+    'tanggalpembayarandp', 'tanggalpembayaran', 'tglpembayaran', 'tanggalbayar', 'tglbayar',
+    'tanggaltransfer', 'paymentdate', 'tanggalangsuran',
+  ],
+  jatuhTempoDokumen: [
+    'jatuhtempodokumen', 'jatuhtempoberkas', 'tenggatdokumen', 'batasdokumen',
+    'jatuhtempo', 'tanggaljatuhtempo', 'tgljatuhtempo', 'duedate',
+  ],
+  jatuhTempoAkad: ['jatuhtempoakadkredit', 'jatuhtempoakad', 'batasakad', 'tenggatakad'],
+  nominal: [
+    'nominalpembayarandp', 'nominal', 'jumlah', 'jumlahtagihan', 'angsuran', 'tagihan', 'nilai',
+    'amount', 'besarangsuran',
+  ],
   status: ['status', 'statusbayar', 'statuspembayaran', 'keterangan', 'ket'],
 }
 
 const normal = (s: string): string => s.toLowerCase().replace(/[^a-z0-9]/g, '')
+
+/**
+ * Mencari baris header. Sheet nyata sering diawali judul dan baris kosong,
+ * jadi baris pertama belum tentu headernya — yang dipakai adalah baris dengan
+ * kecocokan alias terbanyak di antara 15 baris pertama.
+ */
+export function cariBarisHeader(tabel: string[][]): number {
+  let terbaik = 0
+  let skorTerbaik = 0
+  for (let i = 0; i < Math.min(15, tabel.length); i++) {
+    const peta = petakanKolom(tabel[i])
+    const skor = Object.keys(peta).length
+    if (skor > skorTerbaik) {
+      skorTerbaik = skor
+      terbaik = i
+    }
+  }
+  return terbaik
+}
 
 /**
  * Memetakan indeks kolom untuk tiap field. Cocok persis diutamakan; bila tidak
@@ -147,6 +180,16 @@ export function uraiTanggal(teks: string): { iso: string | null; ambigu: boolean
   const t = (teks ?? '').trim()
   if (!t) return { iso: null, ambigu: false }
 
+  // Serial Excel/Sheets (mis. 46013) — muncul bila selnya tidak berformat tanggal.
+  if (/^\d{5}(\.\d+)?$/.test(t)) {
+    const n = Math.floor(Number(t))
+    if (n >= 20000 && n <= 60000) {
+      // Epoch Excel 1899-12-30; hitung dalam UTC agar tidak bergeser zona waktu.
+      const d = new Date(Date.UTC(1899, 11, 30) + n * 86_400_000)
+      return { iso: d.toISOString().slice(0, 10), ambigu: false }
+    }
+  }
+
   // 2026-08-04
   let m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)
   if (m) return { iso: rakit(+m[1], +m[2], +m[3]), ambigu: false }
@@ -190,7 +233,8 @@ export interface BarisTagihan {
   proyek: string
   /** ISO yyyy-mm-dd, kosong bila tidak terbaca. */
   tglBayar: string
-  jatuhTempo: string
+  jatuhTempoDokumen: string
+  jatuhTempoAkad: string
   nominal: number
   status: string
   /** Kunci stabil untuk mencegah reminder ganda pada baris yang sama. */
@@ -208,7 +252,9 @@ export interface HasilSheet {
   hilang: Kolom[]
   baris: BarisTagihan[]
   /** Baris yang tanggalnya tidak terbaca, beserta isinya apa adanya. */
-  tanggalGagal: { baris: number; tglBayar: string; jatuhTempo: string }[]
+  tanggalGagal: { baris: number; nilai: string[] }[]
+  /** Baris header yang dipakai (1 = baris pertama sheet). */
+  barisHeader: number
   /** Ada tanggal d/m yang bisa terbaca dua arti — perlu dipastikan manusia. */
   adaTanggalAmbigu: boolean
 }
@@ -227,6 +273,7 @@ export async function ambilSheet(url = sheetUrl()): Promise<HasilSheet> {
     baris: [],
     tanggalGagal: [],
     adaTanggalAmbigu: false,
+    barisHeader: 0,
   }
 
   let teks: string
@@ -258,7 +305,8 @@ export async function ambilSheet(url = sheetUrl()): Promise<HasilSheet> {
   const tabel = parseCsv(teks)
   if (!tabel.length) return { ...kosong, error: 'Sheet terbaca tapi tidak berisi baris apa pun.' }
 
-  const header = tabel[0].map((h) => h.trim())
+  const idxHeader = cariBarisHeader(tabel)
+  const header = tabel[idxHeader].map((h) => h.trim())
   const peta = petakanKolom(header)
   const kolom: Partial<Record<Kolom, string>> = {}
   for (const [k, i] of Object.entries(peta) as [Kolom, number][]) kolom[k] = header[i]
@@ -268,38 +316,63 @@ export async function ambilSheet(url = sheetUrl()): Promise<HasilSheet> {
   const tanggalGagal: HasilSheet['tanggalGagal'] = []
   let adaTanggalAmbigu = false
 
-  for (let i = 1; i < tabel.length; i++) {
+  for (let i = idxHeader + 1; i < tabel.length; i++) {
     const row = tabel[i]
     const nama = sel(row, peta.nama)
-    const unit = sel(row, peta.unit)
-    if (!nama && !unit) continue // baris pemisah / total
+    // Baris tanpa nama adalah sub-header, pemisah, atau baris total.
+    if (!nama) continue
 
-    const bayarMentah = sel(row, peta.tglBayar)
-    const tempoMentah = sel(row, peta.jatuhTempo)
-    const bayar = uraiTanggal(bayarMentah)
-    const tempo = uraiTanggal(tempoMentah)
-    if (bayar.ambigu || tempo.ambigu) adaTanggalAmbigu = true
-    if ((bayarMentah && !bayar.iso) || (tempoMentah && !tempo.iso)) {
-      tanggalGagal.push({ baris: i + 1, tglBayar: bayarMentah, jatuhTempo: tempoMentah })
+    const mentah = {
+      bayar: sel(row, peta.tglBayar),
+      dokumen: sel(row, peta.jatuhTempoDokumen),
+      akad: sel(row, peta.jatuhTempoAkad),
     }
+    const bayar = uraiTanggal(mentah.bayar)
+    const dokumen = uraiTanggal(mentah.dokumen)
+    const akad = uraiTanggal(mentah.akad)
+    if (bayar.ambigu || dokumen.ambigu || akad.ambigu) adaTanggalAmbigu = true
+    const gagal = [
+      mentah.bayar && !bayar.iso ? mentah.bayar : '',
+      mentah.dokumen && !dokumen.iso ? mentah.dokumen : '',
+      mentah.akad && !akad.iso ? mentah.akad : '',
+    ].filter(Boolean)
+    if (gagal.length) tanggalGagal.push({ baris: i + 1, nilai: gagal })
+
+    // Kolom email kadang berisi penanda 1/0, bukan alamat — hanya nilai yang
+    // benar-benar beralamat yang dipakai supaya tidak ada kiriman salah tujuan.
+    const emailMentah = sel(row, peta.email)
+    const email = emailMentah.includes('@') ? emailMentah : ''
+    const unit = sel(row, peta.unit)
 
     baris.push({
       baris: i + 1,
       nama,
       unit,
       telepon: sel(row, peta.telepon),
-      email: sel(row, peta.email),
+      email,
       proyek: sel(row, peta.proyek),
       tglBayar: bayar.iso ?? '',
-      jatuhTempo: tempo.iso ?? '',
+      jatuhTempoDokumen: dokumen.iso ?? '',
+      jatuhTempoAkad: akad.iso ?? '',
       nominal: uraiNominal(sel(row, peta.nominal)),
       status: sel(row, peta.status),
-      // Nama + unit + jatuh tempo cukup unik untuk satu termin pembayaran.
-      kunci: `${normal(nama)}|${normal(unit)}|${tempo.iso ?? 'x'}`,
+      // Nama + unit cukup unik untuk satu konsumen; jenis & tanggal peristiwa
+      // ditambahkan saat reminder dicatat.
+      kunci: `${normal(nama)}|${normal(unit)}`,
     })
   }
 
-  return { ok: true, url, header, kolom, hilang, baris, tanggalGagal, adaTanggalAmbigu }
+  return {
+    ok: true,
+    url,
+    header,
+    kolom,
+    hilang,
+    baris,
+    tanggalGagal,
+    adaTanggalAmbigu,
+    barisHeader: idxHeader + 1,
+  }
 }
 
 /** Status yang berarti tagihan sudah beres — reminder tidak perlu dikirim. */

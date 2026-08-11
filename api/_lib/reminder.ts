@@ -161,55 +161,74 @@ export function reminderJatuhTempo(
 }
 
 
-// ---- Reminder pembayaran (sumber: Google Sheet) ----
+// ---- Reminder tagihan & tenggat (sumber: Google Sheet) ----
 
 /**
- * Tangga reminder tagihan, dihitung terhadap **tanggal jatuh tempo**.
- * Tingkat 0 memakai tanggal pembayaran yang dijadwalkan bila ada; sisanya
- * mengikuti jatuh tempo. Ubah `hari` di sini untuk menggeser jadwalnya.
+ * Tiga peristiwa yang dikawal dari sheet. Tangga waktunya satu dan sama;
+ * yang membedakan hanya frasa `{peristiwa}` di dalam pesannya.
+ */
+export const PERISTIWA = {
+  bayar: { kunci: 'bayar', label: 'Pembayaran DP', frasa: 'pembayaran DP sebesar {nominal}' },
+  dokumen: { kunci: 'dokumen', label: 'Jatuh tempo dokumen', frasa: 'batas kelengkapan dokumen KPR' },
+  akad: { kunci: 'akad', label: 'Jatuh tempo akad kredit', frasa: 'jadwal akad kredit' },
+} as const
+export type JenisPeristiwa = keyof typeof PERISTIWA
+
+/**
+ * Tangga reminder terhadap tanggal peristiwa. Ubah `hari` di sini untuk
+ * menggeser jadwalnya; nama tingkat ikut dipakai pada ringkasan harian.
  */
 export const TANGGA_TAGIHAN: TingkatReminder[] = [
   {
     tingkat: 0,
     nama: 'Pengingat H-3',
     hari: -3,
-    subjek: 'Pengingat pembayaran {unit} — jatuh tempo {tenggat}',
+    subjek: 'Pengingat: {label} unit {unit} pada {tenggat}',
     template:
       'Selamat pagi Bapak/Ibu {nama}, kami dari tim Collection {proyek}. ' +
-      'Mengingatkan pembayaran untuk unit {unit} sebesar {nominal} jatuh tempo pada {tenggat} ({hari} hari lagi). ' +
-      'Mohon dapat diselesaikan sebelum tanggal tersebut. Terima kasih. — {pic}',
+      'Mengingatkan {peristiwa} untuk unit {unit} dijadwalkan pada {tenggat} ({hari} hari lagi). ' +
+      'Mohon dapat dipersiapkan agar prosesnya tidak tertunda. Terima kasih. — {pic}',
   },
   {
     tingkat: 1,
-    nama: 'Hari jatuh tempo',
+    nama: 'Hari-H',
     hari: 0,
-    subjek: 'Hari ini jatuh tempo pembayaran {unit}',
+    subjek: 'Hari ini: {label} unit {unit}',
     template:
-      'Selamat pagi Bapak/Ibu {nama}, hari ini ({tenggat}) adalah jatuh tempo pembayaran unit {unit} ' +
-      'sebesar {nominal}. Mohon pembayaran dapat diselesaikan hari ini. ' +
-      'Bila sudah ditransfer, mohon kirimkan bukti transfernya kepada kami. Terima kasih. — {pic}',
+      'Selamat pagi Bapak/Ibu {nama}, hari ini ({tenggat}) adalah jadwal {peristiwa} untuk unit {unit}. ' +
+      'Mohon dapat diselesaikan hari ini; bila sudah, mohon kirimkan buktinya kepada kami. ' +
+      'Terima kasih. — {pic}',
   },
   {
     tingkat: 2,
     nama: 'Terlambat 3 hari',
     hari: 3,
-    subjek: 'Pembayaran {unit} terlambat {hari} hari',
+    subjek: '{label} unit {unit} terlambat {hari} hari',
     template:
-      'Bapak/Ibu {nama}, pembayaran unit {unit} sebesar {nominal} sudah {hari} hari melewati jatuh tempo {tenggat} ' +
-      'dan belum kami terima. Mohon konfirmasi kapan pembayaran dapat diselesaikan, ' +
-      'atau kirimkan bukti transfer bila sudah dibayarkan. — {pic}',
+      'Bapak/Ibu {nama}, {peristiwa} untuk unit {unit} sudah {hari} hari melewati {tenggat} ' +
+      'dan belum kami terima. Mohon konfirmasi kapan dapat diselesaikan. — {pic}',
   },
   {
     tingkat: 3,
     nama: 'Eskalasi',
     hari: 7,
-    subjek: 'Eskalasi: pembayaran {unit} tertunggak {hari} hari',
+    subjek: 'Eskalasi: {label} unit {unit} tertunggak {hari} hari',
     template:
-      'Bapak/Ibu {nama}, sampai hari ini pembayaran unit {unit} sebesar {nominal} tertunggak {hari} hari ' +
-      'sejak jatuh tempo {tenggat}. Berkas Bapak/Ibu kami eskalasi ke supervisor Collection untuk ditinjau. ' +
+      'Bapak/Ibu {nama}, sampai hari ini {peristiwa} untuk unit {unit} tertunggak {hari} hari ' +
+      'sejak {tenggat}. Berkas Bapak/Ibu kami eskalasi ke supervisor Collection untuk ditinjau. ' +
       'Mohon segera menghubungi kami hari ini. — {pic}',
   },
 ]
+
+/**
+ * Peristiwa yang lewat lebih lama dari ini tidak dikirimi reminder.
+ *
+ * Tanpa batas ini, penjalanan pertama akan mengirim eskalasi untuk seluruh
+ * baris lama di sheet sekaligus — konsumen menerima tagihan berumur berbulan-
+ * bulan yang mestinya sudah diselesaikan di luar sistem. Baris setua itu
+ * dilaporkan sebagai perlu ditinjau manusia, bukan dikirimi pesan.
+ */
+export const BATAS_KADALUARSA_HARI = 30
 
 /** `15000000` → `Rp 15.000.000`; 0 → `-`. */
 function rupiah(n: number): string {
@@ -225,7 +244,9 @@ export interface TagihanJatuhTempo {
   telepon: string
   email: string
   nominal: number
-  jatuhTempo: string
+  jenis: JenisPeristiwa
+  label: string
+  tanggal: string
   tingkat: TingkatReminder
   lewat: number
   subjek: string
@@ -233,56 +254,80 @@ export interface TagihanJatuhTempo {
 }
 
 /**
- * Tagihan yang remindernya jatuh tempo hari ini.
+ * Reminder yang jatuh tempo hari ini dari seluruh baris sheet.
  *
- * Baris yang statusnya sudah lunas, tidak punya jatuh tempo, atau tingkatnya
- * sudah pernah dikirim (menurut `terkirim`) dilewati — sehingga satu termin
- * tidak pernah dikejar dua kali pada tingkat yang sama.
+ * Tiap baris dievaluasi untuk ketiga peristiwanya, sehingga satu konsumen bisa
+ * punya reminder pembayaran dan reminder dokumen sekaligus bila keduanya jatuh
+ * pada hari yang sama. Kunci anti-ganda memuat jenis peristiwa dan tanggalnya,
+ * jadi ketiganya tidak saling menutupi dan satu tingkat tidak pernah terkirim
+ * dua kali. Baris berstatus lunas dilewati.
  */
 export function tagihanJatuhTempo(
   baris: BarisTagihan[],
   terkirim: Map<string, number>,
   sekarang: Date,
   lunas: (status: string) => boolean,
-): TagihanJatuhTempo[] {
+): { antre: TagihanJatuhTempo[]; kedaluwarsa: TagihanJatuhTempo[] } {
   const hasil: TagihanJatuhTempo[] = []
+  const kedaluwarsa: TagihanJatuhTempo[] = []
 
   for (const b of baris) {
-    if (!b.jatuhTempo) continue
     if (lunas(b.status)) continue
 
-    const lewat = lewatHari(b.jatuhTempo, sekarang)
-    const jt = TANGGA_TAGIHAN.filter((t) => lewat >= t.hari).sort((a, c) => c.tingkat - a.tingkat)[0]
-    if (!jt) continue
-    if (jt.tingkat <= (terkirim.get(b.kunci) ?? -1)) continue
+    const peristiwa: [JenisPeristiwa, string][] = [
+      ['bayar', b.tglBayar],
+      ['dokumen', b.jatuhTempoDokumen],
+      ['akad', b.jatuhTempoAkad],
+    ]
 
-    const isi: Record<string, string> = {
-      nama: b.nama || 'Bapak/Ibu',
-      unit: b.unit || '-',
-      proyek: b.proyek || 'Cipta Harmoni Lestari',
-      nominal: rupiah(b.nominal),
-      tenggat: fmtTgl(b.jatuhTempo),
-      hari: String(Math.abs(lewat)),
-      pic: PENGIRIM_NAMA,
+    for (const [jenis, tanggal] of peristiwa) {
+      if (!tanggal) continue
+      const lewat = lewatHari(tanggal, sekarang)
+      const jt = TANGGA_TAGIHAN.filter((t) => lewat >= t.hari).sort(
+        (a, c) => c.tingkat - a.tingkat,
+      )[0]
+      if (!jt) continue
+
+      const kunci = `${b.kunci}|${jenis}|${tanggal}`
+      if (jt.tingkat <= (terkirim.get(kunci) ?? -1)) continue
+
+      const info = PERISTIWA[jenis]
+      const isi: Record<string, string> = {
+        nama: b.nama || 'Bapak/Ibu',
+        unit: b.unit || '-',
+        proyek: b.proyek || 'Cipta Harmoni Lestari',
+        nominal: rupiah(b.nominal),
+        tenggat: fmtTgl(tanggal),
+        hari: String(Math.abs(lewat)),
+        label: info.label,
+        pic: PENGIRIM_NAMA,
+      }
+      // Frasa peristiwa boleh memuat {nominal}, jadi diisi lebih dulu.
+      isi.peristiwa = isiTemplate(info.frasa, isi)
+
+      const item = {
+        kunci,
+        baris: b.baris,
+        nama: b.nama,
+        unit: b.unit,
+        telepon: b.telepon,
+        email: b.email,
+        nominal: b.nominal,
+        jenis,
+        label: info.label,
+        tanggal,
+        tingkat: jt,
+        lewat,
+        subjek: isiTemplate(jt.subjek, isi),
+        pesan: isiTemplate(jt.template, isi),
+      }
+      if (lewat > BATAS_KADALUARSA_HARI) kedaluwarsa.push(item)
+      else hasil.push(item)
     }
-
-    hasil.push({
-      kunci: b.kunci,
-      baris: b.baris,
-      nama: b.nama,
-      unit: b.unit,
-      telepon: b.telepon,
-      email: b.email,
-      nominal: b.nominal,
-      jatuhTempo: b.jatuhTempo,
-      tingkat: jt,
-      lewat,
-      subjek: isiTemplate(jt.subjek, isi),
-      pesan: isiTemplate(jt.template, isi),
-    })
   }
 
-  return hasil.sort((a, b) => b.lewat - a.lewat)
+  const urut = (a: TagihanJatuhTempo, b: TagihanJatuhTempo) => b.lewat - a.lewat
+  return { antre: hasil.sort(urut), kedaluwarsa: kedaluwarsa.sort(urut) }
 }
 
 /** `08xx` → `628xx`, agar bisa dipakai pada tautan wa.me. */

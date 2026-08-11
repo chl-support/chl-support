@@ -381,20 +381,27 @@ async function reminderTagihan(dry: boolean) {
   if (!sheet.ok) return { ok: false, error: sheet.error, url: sheet.url, terkirim: 0, antre: [] }
 
   const terkirim = await getTagihanTerkirim()
-  const antre = tagihanJatuhTempo(sheet.baris, terkirim, new Date(), sudahBayar)
+  const { antre, kedaluwarsa } = tagihanJatuhTempo(sheet.baris, terkirim, new Date(), sudahBayar)
   const ringkasan = antre.map((t) => ({
     baris: t.baris,
     nama: t.nama,
     unit: t.unit,
     tingkat: t.tingkat.nama,
     lewatHari: t.lewat,
-    jatuhTempo: t.jatuhTempo,
+    jenis: t.label,
+    tanggal: t.tanggal,
     nominal: t.nominal,
     email: t.email || null,
     whatsapp: t.telepon ? tautanWa(t.telepon, t.pesan) : null,
   }))
 
-  if (dry) return { ok: true, dry: true, url: sheet.url, terkirim: 0, antre: ringkasan }
+  // Baris yang sudah lewat terlalu lama tidak dikirimi apa pun; dilaporkan saja
+  // supaya bisa dibereskan manual.
+  const perluDitinjau = kedaluwarsa.map(ringkas2)
+
+  if (dry) {
+    return { ok: true, dry: true, url: sheet.url, terkirim: 0, antre: ringkasan, perluDitinjau }
+  }
 
   let dikirim = 0
   const hasil: Record<string, unknown>[] = []
@@ -427,7 +434,7 @@ async function reminderTagihan(dry: boolean) {
     const badan = perluWa
       .map(
         (t) =>
-          `${t.nama} — ${t.unit} · ${t.tingkat.nama} · jatuh tempo ${t.jatuhTempo}\n` +
+          `${t.nama} — ${t.unit} · ${t.label} · ${t.tingkat.nama} · ${t.tanggal}\n` +
           `Kirim WhatsApp: ${tautanWa(t.telepon, t.pesan)}`,
       )
       .join('\n\n')
@@ -440,11 +447,25 @@ async function reminderTagihan(dry: boolean) {
     })
   }
 
-  return { ok: true, url: sheet.url, terkirim: dikirim, total: antre.length, hasil }
+  return { ok: true, url: sheet.url, terkirim: dikirim, total: antre.length, hasil, perluDitinjau }
 }
 
-function ringkas2(t: { baris: number; nama: string; unit: string; tingkat: { nama: string }; lewat: number }) {
-  return { baris: t.baris, nama: t.nama, unit: t.unit, tingkat: t.tingkat.nama, lewatHari: t.lewat }
+function ringkas2(t: {
+  baris: number
+  nama: string
+  unit: string
+  label: string
+  tingkat: { nama: string }
+  lewat: number
+}) {
+  return {
+    baris: t.baris,
+    nama: t.nama,
+    unit: t.unit,
+    jenis: t.label,
+    tingkat: t.tingkat.nama,
+    lewatHari: t.lewat,
+  }
 }
 
 /** Ringkasan satu reminder untuk badan respons penjadwal. */

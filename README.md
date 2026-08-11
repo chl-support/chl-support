@@ -114,7 +114,7 @@ Dua kanal tersedia: **WhatsApp** (`wa.me`) dan **email** (`mailto:` dengan subje
 Identitas pengirim diatur di `PENGIRIM_REMINDER` (`src/data/kpr.ts`).
 
 **Pengiriman otomatis (penjadwal harian).** Vercel Cron memanggil
-`GET /api/collection?action=reminder` setiap hari pukul 01.00 UTC (08.00 WIB). Penjadwal menghitung
+`GET /api/collection?action=reminder` setiap hari pukul 05.00 UTC (12.00 WIB). Penjadwal menghitung
 berkas yang jatuh tempo dengan aturan yang sama persis seperti layarnya, mengirim emailnya lewat
 Resend, lalu mencatat tiap pengiriman sebagai riwayat follow-up dengan kanal `Email (otomatis)`.
 Pencatatan **hanya** untuk email yang benar-benar terkirim, sehingga jejak audit tidak pernah
@@ -150,25 +150,41 @@ kredensial: sheet diminta sebagai CSV lewat `export?format=csv`. Syaratnya sheet
 tanggalnya gagal diurai — pakai endpoint itu untuk memastikan pemetaannya benar sebelum reminder
 dikirim ke konsumen.
 
-Tanggal diterima dalam bentuk `2026-08-04`, `04/08/2026`, `4-8-26`, dan `4 Agustus 2026`. Bentuk
+Baris header dicari otomatis di antara 15 baris pertama (sheet nyata sering diawali judul dan baris
+kosong), dan baris tanpa nama konsumen — sub-header, pemisah, total — dilewati. Kolom email yang
+berisi penanda `1`/`0` alih-alih alamat diperlakukan sebagai kosong, supaya tidak ada kiriman salah
+tujuan.
+
+Tanggal diterima sebagai serial Excel (`46245`) maupun teks `2026-08-04`, `04/08/2026`, `4-8-26`,
+dan `4 Agustus 2026`. Bentuk
 `d/m/y` dibaca **hari lebih dulu** sesuai kebiasaan Indonesia; bila kedua angkanya ≤ 12 hasilnya
 ambigu dan ditandai `adaTanggalAmbigu` agar diperiksa manusia. Nominal menerima `Rp 15.000.000`
 maupun `1,500,000`. Baris berstatus lunas/sudah bayar/paid dilewati.
 
-Tangga reminder tagihan dihitung terhadap **tanggal jatuh tempo**:
+**Tiga peristiwa** dikawal per baris: tanggal pembayaran DP, jatuh tempo dokumen, dan jatuh tempo
+akad kredit. Tangga waktunya sama untuk ketiganya — yang berbeda hanya frasa peristiwanya di dalam
+pesan, sehingga satu konsumen bisa menerima pengingat pembayaran dan pengingat dokumen sekaligus
+bila keduanya jatuh berdekatan.
 
 | Tingkat | Jadwal |
 | --- | --- |
 | Pengingat | H-3 |
-| Hari jatuh tempo | H |
+| Hari-H | tanggal peristiwa |
 | Terlambat | H+3 |
 | Eskalasi | H+7 |
+
+> **Batas kedaluwarsa 30 hari.** Peristiwa yang lewat lebih lama dari itu **tidak** dikirimi pesan;
+> tanpa batas ini penjalanan pertama akan mengirim eskalasi untuk seluruh baris lama sekaligus —
+> konsumen menerima tagihan berumur berbulan-bulan yang mestinya sudah selesai di luar sistem.
+> Baris setua itu dilaporkan pada `perluDitinjau` agar dibereskan manual.
 
 Email ke konsumen dikirim otomatis oleh penjadwal harian yang sama. WhatsApp tidak bisa dikirim
 sendiri, jadi tautan `wa.me` untuk semua konsumen yang jatuh tempo hari itu dirangkum dalam satu
 email ringkasan ke petugas — tetap terkirim hari itu juga, cukup satu ketuk per konsumen.
 Pengiriman yang berhasil dicatat di tabel `tagihan_reminder` dengan kunci `nama|unit|jatuh tempo`,
 sehingga satu termin tidak pernah dikejar dua kali pada tingkat yang sama.
+
+Penjadwal berjalan pukul **05.00 UTC (12.00 WIB)** setiap hari.
 
 Env var terkait: `SHEET_TAGIHAN_URL` (URL CSV penuh) atau `SHEET_TAGIHAN_ID` + `SHEET_TAGIHAN_GID`.
 Bila tidak di-set, dipakai sheet bawaan yang tertulis di `api/_lib/sheet.ts`.
