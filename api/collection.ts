@@ -19,6 +19,9 @@ import {
   updateKprDokumen,
   upsertKprBerkas,
 } from './_lib/db.js'
+import { getProjects } from './_lib/db.js'
+import { kirimEmail, resendKey } from './_lib/mailer.js'
+import { reminderJatuhTempo } from './_lib/reminder.js'
 import { fail, methodNotAllowed, readRawBody, sendFile } from './_lib/http.js'
 
 // Berkas report diunggah sebagai raw body, jadi parser bawaan dimatikan dan
@@ -78,6 +81,10 @@ async function body(req: VercelRequest): Promise<Record<string, unknown>> {
  * GET    /api/collection?download=4            → unduh report yang disimpan di Neon
  * POST   /api/collection?action=report&proyek=srp&filename=rekap.xlsx → unggah (body = berkas)
  * DELETE /api/collection?report=4              → hapus satu report
+ *
+ * Penjadwal reminder harian (dipanggil Vercel Cron):
+ * GET    /api/collection?action=reminder       → kirim reminder yang jatuh tempo
+ * GET    /api/collection?action=reminder&dry=1 → hanya laporkan, tanpa mengirim
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!hasDb()) {
@@ -88,6 +95,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await ensureSchema()
 
     if (req.method === 'GET') {
+      if (String(req.query.action ?? '') === 'reminder') return reminder(req, res)
       const proyek = req.query.proyek ? String(req.query.proyek) : undefined
       if (req.query.download != null) {
         const id = Number(req.query.download)
@@ -259,5 +267,78 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return methodNotAllowed(res, ['GET', 'POST', 'PATCH', 'DELETE'])
   } catch (e) {
     fail(res, 500, 'Operasi berkas KPR gagal.', (e as Error).message)
+  }
+}
+
+/**
+ * Penjadwal reminder harian.
+ *
+ * Dipanggil Vercel Cron sekali sehari. Menghitung berkas mana yang jatuh tempo
+ * hari ini, mengirim emailnya, lalu mencatat tiap pengiriman sebagai riwayat
+ * follow-up — pencatatan hanya dilakukan untuk email yang benar-benar terkirim,
+ * supaya jejaknya tidak pernah mengklaim kontak yang tidak terjadi.
+ *
+ * Tanpa `RESEND_API_KEY`, endpoint ini berjalan sebagai laporan saja: daftar
+ * jatuh tempo dikembalikan, tidak ada yang dikirim maupun dicatat.
+ */
+async function reminder(req: VercelRequest, res: VercelResponse) {
+  // Vercel Cron mengirim `Authorization: Bearer $CRON_SECRET` bila secret di-set.
+  const secret = process.env.CRON_SECRET
+  if (secret && req.headers.authorization !== `Bearer ${secret}`) {
+    return fail(res, 401, 'Tidak berwenang memanggil penjadwal reminder.')
+  }
+
+  const dry = req.query.dry != null || !resendKey()
+  const [daftar, projects] = await Promise.all([getKprBerkas(), getProjects()])
+  const namaProyek = new Map(projects.map((p) => [String(p.id), String(p.nama)]))
+  const antre = reminderJatuhTempo(daftar, namaProyek, new Date())
+
+  if (dry) {
+    return res.status(200).json({
+      ok: true,
+      terkirim: 0,
+      dry: true,
+      alasan: resendKey() ? 'Dijalankan sebagai uji coba (dry).' : 'RESEND_API_KEY belum di-set.',
+      jatuhTempo: antre.map(ringkas),
+    })
+  }
+
+  const hasil: Record<string, unknown>[] = []
+  let terkirim = 0
+  for (const item of antre) {
+    const tujuan = item.berkas.email.trim()
+    if (!tujuan) {
+      hasil.push({ ...ringkas(item), status: 'dilewati', alasan: 'email customer kosong' })
+      continue
+    }
+    const kirim = await kirimEmail({ to: tujuan, subject: item.subjek, text: item.pesan })
+    if (!kirim.ok) {
+      hasil.push({ ...ringkas(item), status: 'gagal', alasan: kirim.error })
+      continue
+    }
+    await insertKprFollowup({
+      kprId: item.berkas.id,
+      tingkat: item.tingkat.tingkat,
+      kanal: 'Email (otomatis)',
+      pesan: item.pesan,
+      hasil: `Terkirim otomatis ke ${tujuan}`,
+      oleh: 'Sistem',
+    })
+    terkirim += 1
+    hasil.push({ ...ringkas(item), status: 'terkirim' })
+  }
+
+  return res.status(200).json({ ok: true, terkirim, total: antre.length, hasil })
+}
+
+/** Ringkasan satu reminder untuk badan respons penjadwal. */
+function ringkas(item: { berkas: { id: number; nama: string; unit: string }; tingkat: { nama: string }; lewat: number; kurang: string[] }) {
+  return {
+    id: item.berkas.id,
+    nama: item.berkas.nama,
+    unit: item.berkas.unit,
+    tingkat: item.tingkat.nama,
+    lewatHari: item.lewat,
+    kurang: item.kurang,
   }
 }

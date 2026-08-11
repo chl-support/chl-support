@@ -113,13 +113,33 @@ tenggat, hitungan hari, dan PIC terisi sendiri. Petugas boleh mengedit sebelum m
 Dua kanal tersedia: **WhatsApp** (`wa.me`) dan **email** (`mailto:` dengan subjek per tingkat).
 Identitas pengirim diatur di `PENGIRIM_REMINDER` (`src/data/kpr.ts`).
 
-> **Batas otomatisasi.** Aplikasi menyusun, menjadwalkan, dan mencatat follow-up, tapi **tidak
-> mengirim sendiri** — pengiriman tetap satu klik lewat WhatsApp atau aplikasi email petugas.
-> Supaya benar-benar terkirim tanpa operator, dibutuhkan: (a) email — kunci API penyedia
-> (Resend/SendGrid/SMTP) plus verifikasi domain `ciptaharmoni.com` agar boleh mengirim atas nama
-> alamat itu; atau (b) WhatsApp — akun WhatsApp Business API resmi beserta template pesan yang
-> disetujui Meta (nomor pribadi lewat gateway tidak resmi berisiko diblokir); ditambah penjadwal
-> harian yang memanggil daftar jatuh tempo. Ketiganya belum dipasang.
+**Pengiriman otomatis (penjadwal harian).** Vercel Cron memanggil
+`GET /api/collection?action=reminder` setiap hari pukul 01.00 UTC (08.00 WIB). Penjadwal menghitung
+berkas yang jatuh tempo dengan aturan yang sama persis seperti layarnya, mengirim emailnya lewat
+Resend, lalu mencatat tiap pengiriman sebagai riwayat follow-up dengan kanal `Email (otomatis)`.
+Pencatatan **hanya** untuk email yang benar-benar terkirim, sehingga jejak audit tidak pernah
+mengklaim kontak yang tidak terjadi. Satu tingkat tidak akan dikirim dua kali: posisi berkas
+selalu diturunkan dari tenggat dan riwayat kontaknya.
+
+Env var yang dibutuhkan agar penjadwal benar-benar mengirim:
+
+| Env var | Wajib | Fungsi |
+| --- | --- | --- |
+| `RESEND_API_KEY` | ya | Kunci API Resend. Tanpa ini penjadwal berjalan sebagai laporan saja — tidak mengirim, tidak mencatat |
+| `REMINDER_FROM` | tidak | Alamat pengirim; bawaannya `Collection CHL <agung.mulyana@ciptaharmoni.com>`. **Domainnya harus sudah diverifikasi di Resend**, kalau tidak Resend menolak permintaannya |
+| `REMINDER_BCC` | tidak | Salinan ke supervisor |
+| `CRON_SECRET` | disarankan | Bila di-set, endpoint hanya menerima panggilan dengan `Authorization: Bearer <secret>` — Vercel Cron mengirimkannya otomatis |
+
+Uji coba tanpa mengirim apa pun: `GET /api/collection?action=reminder&dry=1` mengembalikan daftar
+jatuh tempo hari ini beserta tingkat, keterlambatan, dan dokumen yang kurang.
+
+> **WhatsApp masih manual.** Pengiriman WhatsApp tetap satu klik lewat `wa.me`. Otomatisasinya
+> butuh akun WhatsApp Business API resmi beserta template yang disetujui Meta — nomor pribadi lewat
+> gateway tidak resmi melanggar ketentuan WhatsApp dan berisiko diblokir permanen.
+
+> **Tangga reminder ada dua salinan.** Fungsi serverless di-bundel terpisah dari aplikasi, jadi
+> `api/_lib/reminder.ts` menyalin tangga dan template dari `src/data/kpr.ts`. Bila teksnya diubah
+> di satu tempat, ubah juga di tempat lain.
 
 **Arsip report.** Tombol **Upload report** menyimpan rekap follow-up/reminder per proyek ke Vercel
 Blob (cadangan Neon) beserta judul, periode, pengunggah, dan waktunya — tabel `kpr_reports`.
