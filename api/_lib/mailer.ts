@@ -44,17 +44,23 @@ export function penyedia(): Penyedia {
 /**
  * Alamat pengirim reminder.
  *
- * Lewat Gmail, alamatnya harus akun itu sendiri (atau alias "Send mail as"
- * yang sudah diverifikasi di Gmail) — Google menolak alamat lain. Karena itu
- * default-nya mengikuti `GMAIL_USER` begitu jalur Gmail aktif; `REMINDER_FROM`
- * tetap bisa menimpanya kalau alias sudah disiapkan.
+ * Pada jalur Gmail, `GMAIL_USER` yang menentukan — bukan `REMINDER_FROM`.
+ * Google hanya mengizinkan pengiriman atas nama akun yang login (atau alias
+ * "Kirim email sebagai" yang sudah diverifikasi); alamat lain diam-diam ditulis
+ * ulang oleh Google ke akun tersebut, sehingga `REMINDER_FROM` yang berbeda
+ * hanya membuat tampilan di aplikasi berbeda dari yang benar-benar diterima
+ * konsumen. Karena itu di jalur ini `REMINDER_FROM` diabaikan — nilai lama yang
+ * masih tertinggal di Vercel tidak lagi berpengaruh.
+ *
+ * Pada jalur Resend alamat pengirim tidak bisa disimpulkan dari kunci API, jadi
+ * di sana `REMINDER_FROM` tetap dipakai (domainnya harus sudah diverifikasi).
  */
 export function reminderFrom(): string {
-  const manual = process.env.REMINDER_FROM
-  if (manual) return manual
-  const akun = gmailUser()
-  if (akun) return `Collection CHL <${akun}>`
-  return 'Collection CHL <nemtour09@gmail.com>'
+  // Digantung pada jalur yang benar-benar aktif, bukan sekadar adanya
+  // GMAIL_USER: akun Gmail tanpa App Password berarti kiriman lewat Resend,
+  // dan alamat gmail di sana pasti ditolak karena domainnya tak terverifikasi.
+  if (penyedia() === 'gmail') return `Collection CHL <${gmailUser()}>`
+  return process.env.REMINDER_FROM || 'Collection CHL <nemtour09@gmail.com>'
 }
 
 /** Alamat yang menerima salinan/eskalasi; kosong berarti tidak ada salinan. */

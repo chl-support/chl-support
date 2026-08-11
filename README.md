@@ -151,7 +151,7 @@ Berlaku untuk kedua jalur:
 
 | Env var | Wajib | Fungsi |
 | --- | --- | --- |
-| `REMINDER_FROM` | tidak | Alamat pengirim; pada jalur Gmail bawaannya mengikuti `GMAIL_USER`. Menimpanya hanya berhasil bila alamat itu sudah terdaftar di Gmail → Setelan → Akun → "Kirim email sebagai" dan diverifikasi |
+| `REMINDER_FROM` | tidak | **Hanya berlaku di jalur Resend.** Pada jalur Gmail nilainya diabaikan — pengirim selalu `GMAIL_USER`, karena Google menulis ulang alamat lain ke akun yang login. Nilai lama yang masih tertinggal di Vercel tidak berpengaruh; `/api/health` menyebutkannya sebagai catatan |
 | `REMINDER_BCC` | tidak | Salinan ke supervisor |
 | `CRON_SECRET` | disarankan | Bila di-set, endpoint hanya menerima panggilan dengan `Authorization: Bearer <secret>` — Vercel Cron mengirimkannya otomatis |
 

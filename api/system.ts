@@ -152,9 +152,7 @@ function belumAdaJalur(): CekEmail {
  */
 async function cekGmail(): Promise<CekEmail> {
   const akun = gmailUser()!
-  const from = reminderFrom()
-  const alamatFrom = (from.match(/<([^>]+)>/)?.[1] ?? from).trim().toLowerCase()
-  const hasil: CekEmail = { jalur: 'gmail', ok: false, detail: '', from, akun }
+  const hasil: CekEmail = { jalur: 'gmail', ok: false, detail: '', from: reminderFrom(), akun }
 
   try {
     await smtp().verify()
@@ -163,20 +161,18 @@ async function cekGmail(): Promise<CekEmail> {
     return hasil
   }
 
-  // Google menolak alamat pengirim yang bukan akunnya sendiri atau alias
-  // "Send mail as" yang sudah diverifikasi — itu tidak bisa diperiksa lewat
-  // SMTP, jadi cukup diperingatkan agar tidak mengejutkan saat pengiriman.
-  if (alamatFrom !== akun.toLowerCase()) {
-    hasil.ok = true
-    hasil.peringatan =
-      `Login diterima sebagai ${akun}, tapi alamat pengirim disetel ke ${alamatFrom}. ` +
-      'Google hanya mengizinkannya bila alamat itu sudah terdaftar di Gmail → ' +
-      'Setelan → Akun → "Kirim email sebagai" dan sudah diverifikasi.'
-    hasil.detail = `Login Google diterima untuk ${akun}.`
-    return hasil
-  }
-
   hasil.ok = true
+
+  // REMINDER_FROM sengaja tidak dipakai di jalur Gmail. Kalau nilainya masih
+  // tertinggal di Vercel dan berbeda dari akunnya, katakan bahwa ia diabaikan —
+  // supaya tidak ada yang mengira konsumen menerima alamat itu.
+  const sisa = process.env.REMINDER_FROM
+  const alamatSisa = sisa ? (sisa.match(/<([^>]+)>/)?.[1] ?? sisa).trim().toLowerCase() : ''
+  if (alamatSisa && alamatSisa !== akun.toLowerCase()) {
+    hasil.catatan =
+      `REMINDER_FROM masih berisi ${alamatSisa} dan diabaikan — pengirimnya ${akun}. ` +
+      'Boleh dihapus dari Environment Variables agar tidak membingungkan.'
+  }
   hasil.detail = `Login Google diterima — siap mengirim atas nama ${akun}.`
   return hasil
 }
