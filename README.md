@@ -115,20 +115,49 @@ Identitas pengirim diatur di `PENGIRIM_REMINDER` (`src/data/kpr.ts`).
 
 **Pengiriman otomatis (penjadwal harian).** Vercel Cron memanggil
 `GET /api/collection?action=reminder` setiap hari pukul 05.00 UTC (12.00 WIB). Penjadwal menghitung
-berkas yang jatuh tempo dengan aturan yang sama persis seperti layarnya, mengirim emailnya lewat
-Resend, lalu mencatat tiap pengiriman sebagai riwayat follow-up dengan kanal `Email (otomatis)`.
+berkas yang jatuh tempo dengan aturan yang sama persis seperti layarnya, mengirim emailnya, lalu
+mencatat tiap pengiriman sebagai riwayat follow-up dengan kanal `Email (otomatis)`.
 Pencatatan **hanya** untuk email yang benar-benar terkirim, sehingga jejak audit tidak pernah
 mengklaim kontak yang tidak terjadi. Satu tingkat tidak akan dikirim dua kali: posisi berkas
 selalu diturunkan dari tenggat dan riwayat kontaknya.
 
-Env var yang dibutuhkan agar penjadwal benar-benar mengirim:
+#### Jalur email
+
+`api/_lib/mailer.ts` mendukung dua jalur dan memilih sendiri berdasarkan env var yang tersedia;
+**Gmail didahulukan** bila keduanya di-set. Satu jalur saja sudah cukup.
+
+**Jalur A — Gmail / Google Workspace (SMTP).** Tidak perlu verifikasi domain maupun akses DNS:
+Google menandatangani kirimannya dengan DKIM-nya sendiri, dan email yang terkirim otomatis masuk
+ke folder Terkirim akun tersebut. Perlu Verifikasi 2 Langkah aktif, lalu buat **App Password** di
+[myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords) — 16 huruf, bukan
+kata sandi akun.
 
 | Env var | Wajib | Fungsi |
 | --- | --- | --- |
-| `RESEND_API_KEY` | ya | Kunci API Resend. Tanpa ini penjadwal berjalan sebagai laporan saja — tidak mengirim, tidak mencatat |
-| `REMINDER_FROM` | tidak | Alamat pengirim; bawaannya `Collection CHL <agung.mulyana@ciptaharmoni.com>`. **Domainnya harus sudah diverifikasi di Resend**, kalau tidak Resend menolak permintaannya |
+| `GMAIL_USER` | ya | Alamat lengkap akun pengirim, mis. `agung.mulyana@ciptaharmoni.com` |
+| `GMAIL_APP_PASSWORD` | ya | App Password 16 huruf. Spasi yang ikut ter-copy dari Google dibuang otomatis |
+
+Batas kirim Google: ±500 email/hari untuk akun Gmail biasa, ±2.000/hari untuk Google Workspace.
+Bila terlampaui, penjadwal melaporkannya dan sisanya masuk antrean hari berikutnya.
+
+**Jalur B — Resend (HTTP API).** Cocok bila volumenya besar atau butuh laporan pengiriman.
+
+| Env var | Wajib | Fungsi |
+| --- | --- | --- |
+| `RESEND_API_KEY` | ya | Kunci API Resend |
+| `REMINDER_FROM` | tidak | Alamat pengirim. **Domainnya harus sudah diverifikasi di Resend**, kalau tidak Resend menolak permintaannya |
+
+Berlaku untuk kedua jalur:
+
+| Env var | Wajib | Fungsi |
+| --- | --- | --- |
+| `REMINDER_FROM` | tidak | Alamat pengirim; pada jalur Gmail bawaannya mengikuti `GMAIL_USER`. Menimpanya hanya berhasil bila alamat itu sudah terdaftar di Gmail → Setelan → Akun → "Kirim email sebagai" dan diverifikasi |
 | `REMINDER_BCC` | tidak | Salinan ke supervisor |
 | `CRON_SECRET` | disarankan | Bila di-set, endpoint hanya menerima panggilan dengan `Authorization: Bearer <secret>` — Vercel Cron mengirimkannya otomatis |
+
+Tanpa jalur mana pun penjadwal tetap berjalan sebagai laporan saja — tidak mengirim, tidak
+mencatat. `GET /api/health` memeriksa jalur yang aktif dengan benar-benar mencobanya (login SMTP
+ke Google, atau panggilan ke Resend), jadi App Password yang salah ketik ketahuan saat itu juga.
 
 Uji coba tanpa mengirim apa pun: `GET /api/collection?action=reminder&dry=1` mengembalikan daftar
 jatuh tempo hari ini beserta tingkat, keterlambatan, dan dokumen yang kurang.
