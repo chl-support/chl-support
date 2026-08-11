@@ -21,5 +21,11 @@
       "source": "/api/reset",
       "destination": "/api/system?action=reset"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/collection?action=reminder",
+      "schedule": "0 1 * * *"
+    }
   ]
 }
