@@ -134,7 +134,7 @@ kata sandi akun.
 
 | Env var | Wajib | Fungsi |
 | --- | --- | --- |
-| `GMAIL_USER` | ya | Alamat lengkap akun pengirim, mis. `agung.mulyana@ciptaharmoni.com` |
+| `GMAIL_USER` | ya | Alamat lengkap akun pengirim, mis. `nemtour09@gmail.com` |
 | `GMAIL_APP_PASSWORD` | ya | App Password 16 huruf. Spasi yang ikut ter-copy dari Google dibuang otomatis |
 
 Batas kirim Google: ±500 email/hari untuk akun Gmail biasa, ±2.000/hari untuk Google Workspace.

@@ -54,7 +54,7 @@ export function reminderFrom(): string {
   if (manual) return manual
   const akun = gmailUser()
   if (akun) return `Collection CHL <${akun}>`
-  return 'Collection CHL <agung.mulyana@ciptaharmoni.com>'
+  return 'Collection CHL <nemtour09@gmail.com>'
 }
 
 /** Alamat yang menerima salinan/eskalasi; kosong berarti tidak ada salinan. */
