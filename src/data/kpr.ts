@@ -229,7 +229,7 @@ export const TANGGA_FOLLOWUP: TingkatFollowup[] = [
 export const PENGIRIM_REMINDER = {
   nama: 'Agung M. Ramdhani',
   jabatan: 'Collection',
-  email: 'agung.mulyana@ciptaharmoni.com',
+  email: 'nemtour09@gmail.com',
   whatsapp: '087898116981',
 }
 
