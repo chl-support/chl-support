@@ -133,6 +133,23 @@ export async function ensureSchema(): Promise<void> {
     )`
   await sql`CREATE INDEX IF NOT EXISTS kpr_followup_kpr_idx ON kpr_followup (kpr_id)`
 
+  // Reminder tagihan yang sudah terkirim — kuncinya berasal dari baris sheet
+  // (nama + unit + jatuh tempo), dipakai agar satu termin tidak dikejar dua
+  // kali pada tingkat yang sama.
+  await sql`
+    CREATE TABLE IF NOT EXISTS tagihan_reminder (
+      id         SERIAL PRIMARY KEY,
+      kunci      TEXT NOT NULL,
+      tingkat    INTEGER NOT NULL,
+      kanal      TEXT NOT NULL DEFAULT 'Email (otomatis)',
+      tujuan     TEXT DEFAULT '',
+      nama       TEXT DEFAULT '',
+      unit       TEXT DEFAULT '',
+      pesan      TEXT DEFAULT '',
+      created_at TIMESTAMPTZ DEFAULT now()
+    )`
+  await sql`CREATE INDEX IF NOT EXISTS tagihan_reminder_kunci_idx ON tagihan_reminder (kunci)`
+
   // Arsip laporan Collection — rekap follow-up/reminder yang diunggah tim,
   // berkasnya di Blob dengan cadangan bytes di Neon.
   await sql`
@@ -878,6 +895,36 @@ export async function deleteKprBerkas(id: number): Promise<void> {
   await sql`DELETE FROM kpr_dokumen WHERE kpr_id=${id}`
   await sql`DELETE FROM kpr_followup WHERE kpr_id=${id}`
   await sql`DELETE FROM kpr_berkas WHERE id=${id}`
+}
+
+// ---- Reminder tagihan (sumber Google Sheet) ----
+
+/** Tingkat tertinggi yang sudah terkirim per kunci baris sheet. */
+export async function getTagihanTerkirim(): Promise<Map<string, number>> {
+  const sql = db()
+  const rows = (await sql`
+    SELECT kunci, max(tingkat)::int AS tingkat FROM tagihan_reminder GROUP BY kunci`) as {
+    kunci: string
+    tingkat: number
+  }[]
+  return new Map(rows.map((r) => [String(r.kunci), Number(r.tingkat)]))
+}
+
+export async function insertTagihanReminder(r: {
+  kunci: string
+  tingkat: number
+  kanal: string
+  tujuan: string
+  nama: string
+  unit: string
+  pesan: string
+}): Promise<number> {
+  const sql = db()
+  const [row] = (await sql`
+    INSERT INTO tagihan_reminder (kunci, tingkat, kanal, tujuan, nama, unit, pesan)
+    VALUES (${r.kunci}, ${r.tingkat}, ${r.kanal}, ${r.tujuan}, ${r.nama}, ${r.unit}, ${r.pesan})
+    RETURNING id`) as { id: number }[]
+  return row.id
 }
 
 // ---- Corporate — agenda & aksi korporasi ----
