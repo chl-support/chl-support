@@ -1,5 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { blobToken, databaseUrl, openaiKey } from './_lib/env.js'
+import { reminderFrom, resendKey } from './_lib/mailer.js'
+import { ambilSheet, sheetUrl } from './_lib/sheet.js'
 import { db, ensureReady, ensureSchema, getItems, getPermits, getProjects, hasDb } from './_lib/db.js'
 import { fail, methodNotAllowed } from './_lib/http.js'
 
@@ -68,8 +70,96 @@ async function health(res: VercelResponse) {
     ? 'API key tersedia (OPENAI_API_KEY)'
     : 'OPENAI_API_KEY belum di-set'
 
+  // Kesiapan reminder otomatis diperiksa terpisah: bukan syarat aplikasi jalan,
+  // tapi penentu apakah penjadwal harian benar-benar bisa mengirim.
+  const reminder = await cekReminder()
+
   const ready = Object.values(checks).every((c) => c.ok)
-  res.status(200).json({ ok: ready, ready, checks })
+  res.status(200).json({ ok: ready, ready, checks, reminder })
+}
+
+/**
+ * Kesiapan penjadwal reminder: kunci Resend benar-benar dipakai untuk memanggil
+ * Resend (bukan sekadar dicek keberadaannya), status verifikasi domain
+ * pengirim, dan apakah Google Sheet-nya sudah bisa dibaca.
+ */
+async function cekReminder() {
+  const key = resendKey()
+  const from = reminderFrom()
+  const domainPengirim = (from.match(/@([^>\s]+)/)?.[1] ?? '').toLowerCase()
+
+  const resend: Record<string, unknown> = {
+    configured: !!key,
+    ok: false,
+    detail: key ? '' : 'RESEND_API_KEY belum di-set — penjadwal berjalan tapi tidak mengirim.',
+    from,
+  }
+
+  if (key) {
+    try {
+      const r = await fetch('https://api.resend.com/domains', {
+        headers: { Authorization: `Bearer ${key}` },
+      })
+      if (r.status === 401 || r.status === 403) {
+        resend.detail = 'Kunci ditolak Resend (401/403) — periksa nilai RESEND_API_KEY.'
+      } else if (!r.ok) {
+        resend.detail = `Resend membalas HTTP ${r.status}.`
+      } else {
+        const body = (await r.json().catch(() => null)) as { data?: unknown[] } | null
+        const daftar = Array.isArray(body?.data) ? (body!.data as Record<string, unknown>[]) : []
+        const domains = daftar.map((d) => ({
+          name: String(d.name ?? ''),
+          status: String(d.status ?? ''),
+        }))
+        resend.domains = domains
+        const cocok = domains.find((d) => d.name.toLowerCase() === domainPengirim)
+        if (!domainPengirim) {
+          resend.detail = 'Kunci valid, tapi alamat pengirim tidak terbaca.'
+        } else if (!cocok) {
+          resend.detail =
+            `Kunci valid, tapi domain "${domainPengirim}" belum terdaftar di Resend. ` +
+            'Tambahkan lewat Domains → Add Domain lalu pasang catatan DNS-nya.'
+        } else if (cocok.status !== 'verified') {
+          resend.detail = `Kunci valid, domain "${domainPengirim}" berstatus "${cocok.status}" — belum terverifikasi, kiriman akan ditolak.`
+        } else {
+          resend.ok = true
+          resend.detail = `Siap mengirim atas nama ${domainPengirim} (terverifikasi).`
+        }
+      }
+    } catch (e) {
+      resend.detail = `Gagal menghubungi Resend: ${(e as Error).message}`
+    }
+  }
+
+  const cron = {
+    configured: !!process.env.CRON_SECRET,
+    ok: !!process.env.CRON_SECRET,
+    detail: process.env.CRON_SECRET
+      ? 'CRON_SECRET terpasang — endpoint penjadwal terkunci.'
+      : 'CRON_SECRET belum di-set; endpoint penjadwal bisa dipanggil siapa saja.',
+    jadwal: '05:00 UTC / 12:00 WIB setiap hari',
+  }
+
+  const hasil = await ambilSheet()
+  const sheet: Record<string, unknown> = {
+    ok: hasil.ok,
+    url: sheetUrl(),
+    detail: hasil.ok
+      ? `Terbaca — ${hasil.baris.length} baris konsumen, header di baris ${hasil.barisHeader}.`
+      : (hasil.error ?? 'Sheet tidak terbaca.'),
+  }
+  if (hasil.ok) {
+    sheet.kolomDikenali = hasil.kolom
+    sheet.kolomHilang = hasil.hilang
+    sheet.adaTanggalAmbigu = hasil.adaTanggalAmbigu
+  }
+
+  return {
+    siapKirim: resend.ok === true && hasil.ok,
+    resend,
+    cron,
+    sheet,
+  }
 }
 
 /**
