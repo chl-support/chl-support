@@ -15,6 +15,16 @@ export interface TingkatReminder {
   nama: string
   /** Hari relatif terhadap tenggat; negatif berarti sebelum tenggat. */
   hari: number
+  /**
+   * Hari terakhir tingkat ini masih berlaku; tanpa nilai berarti tak terbatas.
+   *
+   * Kalimat tiap tingkat sudah memilih arah waktunya ("{hari} hari lagi",
+   * "hari ini", "sudah {hari} hari melewati"), jadi tingkat yang menampung
+   * hari di luar arahnya akan mengirim kalimat yang bertentangan dengan tanggal
+   * di dalamnya sendiri — H-3 berbunyi "1 hari lagi" untuk yang justru sudah
+   * telat sehari. Batas ini yang mencegahnya.
+   */
+  hingga?: number
   subjek: string
   template: string
 }
@@ -24,6 +34,7 @@ export const TANGGA_REMINDER: TingkatReminder[] = [
     tingkat: 0,
     nama: 'Pengingat H-3',
     hari: -3,
+    hingga: -1,
     subjek: 'Pengingat kelengkapan dokumen KPR — {unit}',
     template:
       'Selamat pagi Bapak/Ibu {nama}, kami dari tim Collection {proyek}. ' +
@@ -92,6 +103,10 @@ function lewatHari(iso: string, sekarang: Date): number {
 const isiTemplate = (teks: string, isi: Record<string, string>): string =>
   teks.replace(/\{(\w+)\}/g, (cocok, kunci: string) => isi[kunci] ?? cocok)
 
+/** Apakah satu tingkat berlaku untuk keterlambatan `lewat` hari. */
+const berlaku = (t: TingkatReminder, lewat: number): boolean =>
+  lewat >= t.hari && (t.hingga == null || lewat <= t.hingga)
+
 export interface ReminderJatuhTempo {
   berkas: KprBerkasRow
   tingkat: TingkatReminder
@@ -126,7 +141,7 @@ export function reminderJatuhTempo(
     if (!berkas.dokumen.length || !kurang.length) continue
 
     const lewat = lewatHari(berkas.tenggatDokumen, sekarang)
-    const jatuhTempo = TANGGA_REMINDER.filter((t) => lewat >= t.hari).sort(
+    const jatuhTempo = TANGGA_REMINDER.filter((t) => berlaku(t, lewat)).sort(
       (a, b) => b.tingkat - a.tingkat,
     )[0]
     if (!jatuhTempo) continue
@@ -183,6 +198,7 @@ export const TANGGA_TAGIHAN: TingkatReminder[] = [
     tingkat: 0,
     nama: 'Pengingat H-3',
     hari: -3,
+    hingga: -1,
     subjek: 'Pengingat: {label} unit {unit} pada {tenggat}',
     template:
       'Selamat pagi Bapak/Ibu {nama}, kami dari tim Collection {proyek}. ' +
@@ -193,6 +209,7 @@ export const TANGGA_TAGIHAN: TingkatReminder[] = [
     tingkat: 1,
     nama: 'Hari-H',
     hari: 0,
+    hingga: 0,
     subjek: 'Hari ini: {label} unit {unit}',
     template:
       'Selamat pagi Bapak/Ibu {nama}, hari ini ({tenggat}) adalah jadwal {peristiwa} untuk unit {unit}. ' +
@@ -283,7 +300,7 @@ export function tagihanJatuhTempo(
     for (const [jenis, tanggal] of peristiwa) {
       if (!tanggal) continue
       const lewat = lewatHari(tanggal, sekarang)
-      const jt = TANGGA_TAGIHAN.filter((t) => lewat >= t.hari).sort(
+      const jt = TANGGA_TAGIHAN.filter((t) => berlaku(t, lewat)).sort(
         (a, c) => c.tingkat - a.tingkat,
       )[0]
       if (!jt) continue
