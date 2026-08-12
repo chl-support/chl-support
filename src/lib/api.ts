@@ -86,6 +86,43 @@ export async function fetchHealth(): Promise<Health | null> {
   return getJson<Health>('/api/health')
 }
 
+/** Satu baris antrean reminder hari ini, apa adanya dari penjadwal. */
+export interface AntreanBaris {
+  nama: string
+  unit: string
+  tingkat: string
+  jenis?: string
+  lewatHari: number
+  tanggal?: string
+  email?: string | null
+  kurang?: string[]
+}
+export interface Antrean {
+  dokumen: AntreanBaris[]
+  tagihan: AntreanBaris[]
+  perluDitinjau: AntreanBaris[]
+  errorTagihan?: string
+}
+
+/**
+ * Antrean hari ini tanpa mengirim apa pun (`dry=1`). Dipakai untuk memeriksa
+ * daftar penerima sebelum jam kirim — pertanyaan "siapa saja yang akan dihubungi
+ * hari ini" tidak bisa dijawab dari layar mana pun selain ini.
+ */
+export async function fetchAntreanReminder(): Promise<Antrean | null> {
+  const data = await getJson<{
+    dokumen?: AntreanBaris[]
+    tagihan?: { ok?: boolean; error?: string; antre?: AntreanBaris[]; perluDitinjau?: AntreanBaris[] }
+  }>('/api/collection?action=reminder&dry=1')
+  if (!data) return null
+  return {
+    dokumen: data.dokumen ?? [],
+    tagihan: data.tagihan?.antre ?? [],
+    perluDitinjau: data.tagihan?.perluDitinjau ?? [],
+    errorTagihan: data.tagihan?.ok === false ? data.tagihan.error : undefined,
+  }
+}
+
 export interface AskResult {
   ok: boolean
   text?: string
