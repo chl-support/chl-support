@@ -15,10 +15,30 @@ const SHEET_ID_DEFAULT = '1tWL35cjL3grqSRKqAz66_SROzZSLeTAQJcPiGXX1EC8'
 const SHEET_GID_DEFAULT = '1935898076'
 
 export function sheetUrl(): string {
-  if (process.env.SHEET_TAGIHAN_URL) return process.env.SHEET_TAGIHAN_URL
+  return kandidatUrl()[0]
+}
+
+/**
+ * Bentuk URL CSV yang dicoba berurutan.
+ *
+ * Google menyajikan spreadsheet yang sama lewat beberapa endpoint, dan izin
+ * yang dibutuhkan tiap endpoint berbeda — `export` kadang tetap meminta login
+ * padahal `gviz` sudah melayani sheet yang sama, dan `pub` hanya hidup setelah
+ * File → Bagikan → Publikasikan ke web. Karena tidak ada satu bentuk yang benar
+ * untuk semua cara berbagi, ketiganya dicoba dan yang pertama berhasil dipakai.
+ *
+ * `SHEET_TAGIHAN_URL` menimpa semuanya: bila di-set, hanya itu yang dicoba.
+ */
+export function kandidatUrl(): string[] {
+  if (process.env.SHEET_TAGIHAN_URL) return [process.env.SHEET_TAGIHAN_URL]
   const id = process.env.SHEET_TAGIHAN_ID || SHEET_ID_DEFAULT
   const gid = process.env.SHEET_TAGIHAN_GID || SHEET_GID_DEFAULT
-  return `https://docs.google.com/spreadsheets/d/${id}/export?format=csv&gid=${gid}`
+  const dasar = `https://docs.google.com/spreadsheets/d/${id}`
+  return [
+    `${dasar}/export?format=csv&gid=${gid}`,
+    `${dasar}/gviz/tq?tqx=out:csv&gid=${gid}`,
+    `${dasar}/pub?output=csv&gid=${gid}`,
+  ]
 }
 
 // ---- CSV ----
@@ -257,10 +277,60 @@ export interface HasilSheet {
   barisHeader: number
   /** Ada tanggal d/m yang bisa terbaca dua arti — perlu dipastikan manusia. */
   adaTanggalAmbigu: boolean
+  /** Riwayat tiap bentuk URL yang dicoba — kosong bila yang pertama berhasil. */
+  percobaan?: PercobaanUrl[]
 }
 
 const sel = (row: string[], idx: number | undefined): string =>
   idx == null ? '' : (row[idx] ?? '').trim()
+
+/** Hasil satu percobaan URL, dilaporkan apa adanya untuk keperluan diagnosa. */
+export interface PercobaanUrl {
+  url: string
+  status: number | null
+  hasil: string
+}
+
+/**
+ * Satu percobaan pengambilan CSV. Balasan HTML dihitung gagal walau HTTP 200:
+ * sheet privat memulangkan halaman login dengan status sukses, dan menguraikannya
+ * sebagai CSV akan menghasilkan "sheet kosong" alih-alih "sheet masih privat".
+ */
+async function coba(url: string): Promise<{ teks: string | null; laporan: PercobaanUrl }> {
+  try {
+    const res = await fetch(url, { redirect: 'follow' })
+    if (!res.ok) {
+      return { teks: null, laporan: { url, status: res.status, hasil: `HTTP ${res.status}` } }
+    }
+    const teks = await res.text()
+    if (/^\s*<(!doctype|html)/i.test(teks)) {
+      return { teks: null, laporan: { url, status: res.status, hasil: 'halaman HTML (login)' } }
+    }
+    return { teks, laporan: { url, status: res.status, hasil: 'terbaca' } }
+  } catch (e) {
+    return { teks: null, laporan: { url, status: null, hasil: (e as Error).message } }
+  }
+}
+
+/** Pesan yang menyebut sebab paling mungkin, bukan sekadar kode status. */
+function ringkasKegagalan(percobaan: PercobaanUrl[]): string {
+  const bentuk = (u: string) =>
+    u.includes('/gviz/') ? 'gviz' : u.includes('/pub?') ? 'publikasi web' : 'export'
+  const rincian = percobaan.map((p) => `${bentuk(p.url)}: ${p.hasil}`).join(' · ')
+
+  const semuaHtml = percobaan.every((p) => p.hasil.startsWith('halaman HTML'))
+  const adaAuth = percobaan.some((p) => p.status === 401 || p.status === 403)
+
+  if (semuaHtml || adaAuth) {
+    return (
+      `Sheet belum bisa dibaca tanpa login (${rincian}). Buka sheet → Bagikan → ubah Akses umum ` +
+      'menjadi "Siapa saja yang memiliki link" sebagai Pelihat. Kalau file-nya hasil unggahan ' +
+      'Excel, buka File → Simpan sebagai Google Spreadsheet dulu — file .xlsx di Drive tidak ' +
+      'bisa diekspor sebagai CSV lewat tautan.'
+    )
+  }
+  return `Sheet tidak terbaca (${rincian}).`
+}
 
 /** Mengambil sheet dan menguraikannya menjadi baris tagihan + diagnostik. */
 export async function ambilSheet(url = sheetUrl()): Promise<HasilSheet> {
@@ -276,31 +346,27 @@ export async function ambilSheet(url = sheetUrl()): Promise<HasilSheet> {
     barisHeader: 0,
   }
 
-  let teks: string
-  try {
-    const res = await fetch(url, { redirect: 'follow' })
-    if (!res.ok) {
-      return {
-        ...kosong,
-        error:
-          `Google menolak permintaan (HTTP ${res.status}). Pastikan sheet dibagikan sebagai ` +
-          '"Siapa saja yang memiliki link" atau dipublikasikan lewat File → Bagikan → Publikasikan ke web.',
-      }
+  const daftar = url === sheetUrl() ? kandidatUrl() : [url]
+  const percobaan: PercobaanUrl[] = []
+  let teks = ''
+  let dipakai = ''
+
+  for (const kandidat of daftar) {
+    const hasil = await coba(kandidat)
+    percobaan.push(hasil.laporan)
+    if (hasil.teks != null) {
+      teks = hasil.teks
+      dipakai = kandidat
+      break
     }
-    teks = await res.text()
-  } catch (e) {
-    return { ...kosong, error: `Gagal menghubungi Google Sheet: ${(e as Error).message}` }
   }
 
-  // Sheet privat memulangkan halaman login HTML, bukan CSV.
-  if (/^\s*<(!doctype|html)/i.test(teks)) {
-    return {
-      ...kosong,
-      error:
-        'Yang diterima halaman HTML, bukan CSV — sheet masih privat. Ubah pembagiannya menjadi ' +
-        '"Siapa saja yang memiliki link" (Pelihat), lalu coba lagi.',
-    }
+  if (!dipakai) {
+    return { ...kosong, percobaan, error: ringkasKegagalan(percobaan) }
   }
+  // Sejak sini `url` adalah bentuk yang benar-benar melayani, bukan yang dicoba
+  // pertama — supaya diagnosa menunjuk tautan yang memang bisa dibuka.
+  kosong.url = dipakai
 
   const tabel = parseCsv(teks)
   if (!tabel.length) return { ...kosong, error: 'Sheet terbaca tapi tidak berisi baris apa pun.' }
@@ -364,7 +430,8 @@ export async function ambilSheet(url = sheetUrl()): Promise<HasilSheet> {
 
   return {
     ok: true,
-    url,
+    url: dipakai,
+    percobaan,
     header,
     kolom,
     hilang,

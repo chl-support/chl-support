@@ -33,15 +33,20 @@ export function StatusReminder() {
 
   if (memuat && !data) return null
 
-  const siap = !!data?.siapKirim
-  const warna = gagal || !data ? '#9CA3AF' : siap ? C.done : C.due
+  // Sebagian siap bukan sama dengan mati: reminder dokumen tetap terkirim
+  // walau sheet tagihan belum terbaca, jadi keduanya dibedakan.
+  const penuh = !!data?.dokumenSiap && !!data?.tagihanSiap
+  const sebagian = !!data?.dokumenSiap && !data?.tagihanSiap
+  const warna = gagal || !data ? '#9CA3AF' : penuh ? C.done : sebagian ? C.due : C.late
   const judul = gagal
     ? 'Status pengiriman tidak terbaca'
     : !data
       ? 'Status pengiriman belum tersedia'
-      : siap
+      : penuh
         ? 'Reminder otomatis siap kirim'
-        : 'Reminder otomatis belum bisa mengirim'
+        : sebagian
+          ? 'Reminder dokumen siap · reminder tagihan belum'
+          : 'Reminder otomatis belum bisa mengirim'
 
   return (
     <div
@@ -94,7 +99,7 @@ export function StatusReminder() {
         </p>
       )}
 
-      {data && !buka && !siap && <p style={keterangan}>{ringkasKendala(data)}</p>}
+      {data && !buka && !penuh && <p style={keterangan}>{ringkasKendala(data)}</p>}
 
       {data && buka && (
         <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
@@ -125,7 +130,11 @@ export function StatusReminder() {
 /** Kendala pertama yang menghalangi pengiriman — yang perlu dibereskan duluan. */
 function ringkasKendala(d: ReminderStatus): string {
   if (!d.email.ok) return d.email.detail
-  if (!d.sheet.ok) return d.sheet.detail
+  if (!d.sheet.ok) {
+    return (
+      `Reminder dokumen KPR tetap terkirim. Yang tertahan hanya reminder tagihan: ${d.sheet.detail}`
+    )
+  }
   return 'Belum siap mengirim.'
 }
 
