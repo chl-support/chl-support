@@ -40,7 +40,10 @@ export interface ReminderSheet {
   kolomHilang?: string[]
 }
 export interface ReminderStatus {
-  siapKirim: boolean
+  /** Reminder dokumen KPR — sumbernya database, tidak butuh Google Sheet. */
+  dokumenSiap: boolean
+  /** Reminder tagihan — butuh sheet terbaca selain jalur email. */
+  tagihanSiap: boolean
   email: ReminderEmail
   cron: { ok: boolean; detail: string; jadwal: string }
   sheet: ReminderSheet

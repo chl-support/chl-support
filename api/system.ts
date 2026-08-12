@@ -107,10 +107,12 @@ async function cekReminder() {
   const hasil = await ambilSheet()
   const sheet: Record<string, unknown> = {
     ok: hasil.ok,
-    url: sheetUrl(),
+    // Tautan yang benar-benar melayani, bukan yang dicoba pertama.
+    url: hasil.ok ? hasil.url : sheetUrl(),
     detail: hasil.ok
       ? `Terbaca — ${hasil.baris.length} baris konsumen, header di baris ${hasil.barisHeader}.`
       : (hasil.error ?? 'Sheet tidak terbaca.'),
+    percobaan: hasil.percobaan,
   }
   if (hasil.ok) {
     sheet.kolomDikenali = hasil.kolom
@@ -118,8 +120,14 @@ async function cekReminder() {
     sheet.adaTanggalAmbigu = hasil.adaTanggalAmbigu
   }
 
+  // Dua jenis reminder punya sumber data berbeda, jadi kesiapannya dipisah:
+  // reminder dokumen dihitung dari berkas KPR di database dan tetap terkirim
+  // meski sheet-nya tidak terbaca; hanya reminder tagihan yang bergantung pada
+  // Google Sheet. Menggabungkan keduanya membuat sheet yang belum dibagikan
+  // terbaca seolah seluruh penjadwal mati.
   return {
-    siapKirim: email.ok && hasil.ok,
+    dokumenSiap: email.ok,
+    tagihanSiap: email.ok && hasil.ok,
     email,
     cron,
     sheet,

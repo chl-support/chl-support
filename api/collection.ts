@@ -355,7 +355,9 @@ async function reminder(req: VercelRequest, res: VercelResponse) {
 async function diagnosaSheet(res: VercelResponse) {
   const hasil = await ambilSheet()
   if (!hasil.ok) {
-    return res.status(200).json({ ok: false, url: hasil.url, error: hasil.error })
+    return res
+      .status(200)
+      .json({ ok: false, url: hasil.url, error: hasil.error, percobaan: hasil.percobaan })
   }
   return res.status(200).json({
     ok: true,
