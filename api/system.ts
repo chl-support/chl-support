@@ -128,6 +128,9 @@ async function cekReminder() {
   return {
     dokumenSiap: email.ok,
     tagihanSiap: email.ok && hasil.ok,
+    // Halaman yang masih ter-cache di browser membaca `siapKirim`; tanpa medan
+    // ini ia menyimpulkan "belum siap" padahal semua pemeriksaan lolos.
+    siapKirim: email.ok && hasil.ok,
     email,
     cron,
     sheet,

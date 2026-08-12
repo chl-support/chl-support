@@ -35,8 +35,14 @@ export function StatusReminder() {
 
   // Sebagian siap bukan sama dengan mati: reminder dokumen tetap terkirim
   // walau sheet tagihan belum terbaca, jadi keduanya dibedakan.
-  const penuh = !!data?.dokumenSiap && !!data?.tagihanSiap
-  const sebagian = !!data?.dokumenSiap && !data?.tagihanSiap
+  //
+  // Server lama hanya mengirim `siapKirim`; disimpulkan dari pemeriksaan yang
+  // ada supaya halaman baru tidak melaporkan "belum siap" hanya karena nama
+  // medannya berbeda dari yang dijawab deployment saat itu.
+  const dokumenSiap = data ? (data.dokumenSiap ?? data.email.ok) : false
+  const tagihanSiap = data ? (data.tagihanSiap ?? (data.email.ok && data.sheet.ok)) : false
+  const penuh = dokumenSiap && tagihanSiap
+  const sebagian = dokumenSiap && !tagihanSiap
   const warna = gagal || !data ? '#9CA3AF' : penuh ? C.done : sebagian ? C.due : C.late
   const judul = gagal
     ? 'Status pengiriman tidak terbaca'
