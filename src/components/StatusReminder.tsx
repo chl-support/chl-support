@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { A, C } from '@/data/constants'
-import { fetchHealth, type ReminderStatus } from '@/lib/api'
+import { fetchAntreanReminder, fetchHealth, type Antrean, type ReminderStatus } from '@/lib/api'
 
 /**
  * Ringkasan kesiapan pengiriman reminder otomatis, dibaca dari `/api/health`.
@@ -16,6 +16,16 @@ export function StatusReminder() {
   const [gagal, setGagal] = useState(false)
   const [memuat, setMemuat] = useState(true)
   const [buka, setBuka] = useState(false)
+  const [antrean, setAntrean] = useState<Antrean | null>(null)
+  const [memuatAntrean, setMemuatAntrean] = useState(false)
+
+  const lihatAntrean = () => {
+    if (antrean) return setAntrean(null)
+    setMemuatAntrean(true)
+    fetchAntreanReminder()
+      .then(setAntrean)
+      .finally(() => setMemuatAntrean(false))
+  }
 
   const muat = () => {
     setMemuat(true)
@@ -85,6 +95,11 @@ export function StatusReminder() {
           {memuat ? 'Memeriksa…' : 'Periksa ulang'}
         </button>
         {data && (
+          <button type="button" onClick={lihatAntrean} style={tombol} disabled={memuatAntrean}>
+            {memuatAntrean ? 'Memuat…' : antrean ? 'Tutup antrean' : 'Antrean hari ini'}
+          </button>
+        )}
+        {data && (
           <button type="button" onClick={() => setBuka((v) => !v)} style={tombol}>
             {buka ? 'Sembunyikan' : 'Rincian'}
           </button>
@@ -107,6 +122,8 @@ export function StatusReminder() {
 
       {data && !buka && !penuh && <p style={keterangan}>{ringkasKendala(data)}</p>}
 
+      {antrean && <PanelAntrean a={antrean} />}
+
       {data && buka && (
         <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
           <Baris
@@ -127,6 +144,51 @@ export function StatusReminder() {
                 : undefined
             }
           />
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Daftar penerima hari ini, hasil uji coba yang tidak mengirim apa pun.
+ * Diperlihatkan sebelum jam kirim supaya nama yang tidak semestinya dihubungi
+ * masih bisa dicegat.
+ */
+function PanelAntrean({ a }: { a: Antrean }) {
+  const total = a.dokumen.length + a.tagihan.length
+  return (
+    <div style={{ marginTop: 10, borderTop: '1px solid #F3F4F6', paddingTop: 10 }}>
+      <div style={{ fontSize: 11.5, fontWeight: 700, color: '#374151', marginBottom: 6 }}>
+        {total === 0
+          ? 'Tidak ada yang dihubungi hari ini.'
+          : `${total} pesan akan dikirim pada jadwal berikutnya`}
+      </div>
+
+      {a.errorTagihan && <div style={{ ...keterangan, color: C.due }}>{a.errorTagihan}</div>}
+
+      {total > 0 && (
+        <div style={{ display: 'grid', gap: 3 }}>
+          {[...a.tagihan, ...a.dokumen].map((r, i) => (
+            <div key={i} style={{ fontSize: 11.5, color: '#4B5563' }}>
+              <span style={{ fontWeight: 700 }}>{r.nama}</span>
+              {r.unit ? ` · ${r.unit}` : ''}
+              {r.jenis ? ` · ${r.jenis}` : ''}
+              <span style={{ color: A, fontWeight: 700 }}> · {r.tingkat}</span>
+              {r.email ? <span style={{ color: '#9CA3AF' }}> → {r.email}</span> : null}
+              {r.kurang?.length ? (
+                <span style={{ color: '#9CA3AF' }}> · kurang: {r.kurang.join(', ')}</span>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {a.perluDitinjau.length > 0 && (
+        <div style={{ ...keterangan, color: C.due }}>
+          {a.perluDitinjau.length} baris sudah lewat lebih dari 30 hari — ditahan, tidak dikirimi
+          apa pun. Tangani manual: {a.perluDitinjau.slice(0, 5).map((r) => r.nama).join(', ')}
+          {a.perluDitinjau.length > 5 ? ', …' : ''}
         </div>
       )}
     </div>

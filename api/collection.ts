@@ -286,14 +286,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
  * jatuh tempo dikembalikan, tidak ada yang dikirim maupun dicatat.
  */
 async function reminder(req: VercelRequest, res: VercelResponse) {
+  const jalur = penyedia()
+  const dry = req.query.dry != null || jalur === 'none'
+
   // Vercel Cron mengirim `Authorization: Bearer $CRON_SECRET` bila secret di-set.
+  // Yang dikunci hanya pengiriman sungguhan; uji coba tidak mengirim apa pun dan
+  // tidak mencatat apa pun, jadi memaksanya lewat header membuat satu-satunya
+  // cara memeriksa antrean sebelum jam kirim jadi mustahil dari peramban.
   const secret = process.env.CRON_SECRET
-  if (secret && req.headers.authorization !== `Bearer ${secret}`) {
+  if (!dry && secret && req.headers.authorization !== `Bearer ${secret}`) {
     return fail(res, 401, 'Tidak berwenang memanggil penjadwal reminder.')
   }
 
-  const jalur = penyedia()
-  const dry = req.query.dry != null || jalur === 'none'
   const [daftar, projects] = await Promise.all([getKprBerkas(), getProjects()])
   const namaProyek = new Map(projects.map((p) => [String(p.id), String(p.nama)]))
   const antre = reminderJatuhTempo(daftar, namaProyek, new Date())
