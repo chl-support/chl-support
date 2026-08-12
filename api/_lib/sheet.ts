@@ -224,12 +224,22 @@ export function uraiTanggal(teks: string): { iso: string | null; ambigu: boolean
     return { iso: rakit(y, b, a), ambigu: a <= 12 && b <= 12 }
   }
 
-  // 4 Agustus 2026 · 04 Agu 26
-  m = t.match(/^(\d{1,2})\s+([A-Za-z]+)\.?\s+(\d{2,4})$/)
+  // 4 Agustus 2026 · 04 Agu 26 · 12-Aug-26 · 12/Aug/2026
+  // Pemisahnya tidak dipatok spasi: Google Sheets menampilkan (dan mengekspor)
+  // tanggal sebagai "12-Aug-26" pada format tanggal bawaannya.
+  m = t.match(/^(\d{1,2})[\s./-]+([A-Za-z]+)\.?[\s./-]+(\d{2,4})$/)
   if (m) {
     const bulan = BULAN_ID[m[2].toLowerCase()]
     const y = +m[3] < 100 ? 2000 + +m[3] : +m[3]
     if (bulan) return { iso: rakit(y, bulan, +m[1]), ambigu: false }
+  }
+
+  // Aug 12, 2026 · Agu-12-26 — bulan di depan, dipakai sheet berlokal Inggris.
+  m = t.match(/^([A-Za-z]+)\.?[\s./-]+(\d{1,2}),?[\s./-]+(\d{2,4})$/)
+  if (m) {
+    const bulan = BULAN_ID[m[1].toLowerCase()]
+    const y = +m[3] < 100 ? 2000 + +m[3] : +m[3]
+    if (bulan) return { iso: rakit(y, bulan, +m[2]), ambigu: false }
   }
 
   return { iso: null, ambigu: false }
